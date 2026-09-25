@@ -1,0 +1,44 @@
+/*
+ * Token dell'identità "pietra e bronzo" (A.2): unica fonte di colori, tipografia e spazi.
+ * I componenti usano solo i token semantici (--color-bg, --color-text…), mai i valori grezzi.
+ * Contrasti misurati: testo secondario 4.93:1 su calce e 6.93:1 su notte; accento 3.65:1 e
+ * 7.96:1, sopra il 3:1 richiesto per gli elementi grafici (A.7.8). I filetti sono decorativi
+ * e non portano informazione. (v0.1.0)
+ */
+:root {
+  color-scheme: light dark;
+
+  --palette-basalto: #1a1f28;
+  --palette-marmo: #e4e7e0;
+  --palette-calce: #e7eae4;
+  --palette-notte: #11151b;
+  --palette-verderame: #2e8577;
+  --palette-verderame-chiaro: #5bbba9;
+
+  --color-bg: var(--palette-calce);
+  --color-text: var(--palette-basalto);
+  --color-text-muted: #5e6560;
+  --color-rule: #c9cec6;
+  --color-tile: var(--palette-basalto);
+  --color-accent: var(--palette-verderame);
+
+  --font-display: 'Marcellus', Georgia, 'Times New Roman', serif;
+  --font-body: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
+
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: var(--palette-notte);
+    --color-text: var(--palette-marmo);
+    --color-text-muted: #9aa19c;
+    --color-rule: #2a303a;
+    --color-tile: var(--palette-marmo);
+    --color-accent: var(--palette-verderame-chiaro);
+  }
+}

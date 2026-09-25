@@ -1,0 +1,28 @@
+[workspace]
+# Workspace alla radice: il guscio Tauri e il dominio puro compilano e si testano
+# insieme con un solo `cargo test --workspace` (v0.1.0).
+resolver = "3"
+members = ["src-tauri", "crates/domain"]
+
+[workspace.package]
+# Versione unica dei crate: è uno dei tre manifest controllati da
+# scripts/check-versions.mjs, insieme a package.json e tauri.conf.json (v0.1.0).
+version = "0.1.0"
+edition = "2024"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+# Niente unwrap/expect nel codice di produzione (A.7.5); nei test sono ammessi
+# tramite clippy.toml (v0.1.0).
+unwrap_used = "deny"
+expect_used = "deny"
+
+# I profili valgono solo alla radice del workspace: qui, non in src-tauri (v0.1.0).
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

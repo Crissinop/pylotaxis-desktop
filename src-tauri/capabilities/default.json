@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Finestra principale: solo i comandi che usa davvero (A.7.10).",
+  "windows": ["main"],
+  "permissions": ["allow-app-info"]
+}

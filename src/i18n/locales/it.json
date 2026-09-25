@@ -1,0 +1,10 @@
+{
+  "registry": {
+    "emptyTitle": "Il registro è vuoto",
+    "emptyBody": "Qui compariranno le app che registri: programmi installati, indirizzi web e protocolli."
+  },
+  "footer": {
+    "version": "Versione {{version}}",
+    "versionUnavailable": "Versione non disponibile"
+  }
+}

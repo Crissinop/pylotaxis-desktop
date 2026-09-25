@@ -1,0 +1,18 @@
+[package]
+name = "domain"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "Regole e persistenza del portale, senza dipendenze da Tauri"
+
+[dependencies]
+# SQLCipher e OpenSSL compilati dai sorgenti: nessuna libreria di sistema da installare
+# su Windows, a costo di una prima compilazione più lunga (v0.1.0).
+rusqlite = { version = "0.40.2", features = ["bundled-sqlcipher-vendored-openssl"] }
+thiserror = "2.0.21"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

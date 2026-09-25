@@ -1,0 +1,6 @@
+# Fine riga LF ovunque: senza questa regola Git su Windows convertirebbe i file in CRLF
+# e `npm run format:check` fallirebbe su file non modificati (v0.1.0).
+* text=auto eol=lf
+*.woff2 binary
+*.png binary
+*.ico binary

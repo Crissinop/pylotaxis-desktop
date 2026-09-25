@@ -1,0 +1,5 @@
+# Stessa versione di Rust su ogni macchina e in CI (A.10). "1.98" = ultima patch della 1.98.
+[toolchain]
+channel = "1.98"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

@@ -1,0 +1,10 @@
+{
+  "registry": {
+    "emptyTitle": "The registry is empty",
+    "emptyBody": "The apps you register will appear here: installed programs, web addresses and protocols."
+  },
+  "footer": {
+    "version": "Version {{version}}",
+    "versionUnavailable": "Version unavailable"
+  }
+}
