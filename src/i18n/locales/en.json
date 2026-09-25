@@ -1,7 +1,98 @@
 {
+  "actions": {
+    "addApp": "Add an app",
+    "addFirstApp": "Add your first app",
+    "newCategory": "New category",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "rename": "Rename",
+    "retry": "Try again"
+  },
   "registry": {
     "emptyTitle": "The registry is empty",
-    "emptyBody": "The apps you register will appear here: installed programs, web addresses and protocols."
+    "emptyBody": "The apps you register will appear here: installed programs, web addresses and protocols.",
+    "uncategorized": "Uncategorized",
+    "launch": "Launch {{name}}",
+    "editApp": "Edit {{name}}",
+    "deleteApp": "Delete {{name}}",
+    "renameCategory": "Rename category {{name}}",
+    "deleteCategory": "Delete category {{name}}",
+    "kind": {
+      "executable": "Program",
+      "web": "Web",
+      "protocol": "Protocol"
+    }
+  },
+  "form": {
+    "createTitle": "Add an app",
+    "editTitle": "Edit {{name}}",
+    "kindLabel": "Type",
+    "kindExecutable": "Installed program",
+    "kindWeb": "Web address",
+    "kindProtocol": "Protocol",
+    "pickExecutable": "Choose the program…",
+    "pickAgain": "Choose another program…",
+    "pickDialogTitle": "Choose the program to register",
+    "pickFilter": "Programs",
+    "pickedFile": "Chosen file",
+    "noFilePicked": "No program chosen",
+    "urlLabel": "Address",
+    "urlHint": "Only http:// or https://",
+    "uriLabel": "Protocol URI",
+    "uriHint": "For example ms-settings:display",
+    "nameLabel": "Name",
+    "categoryLabel": "Category",
+    "tagsLabel": "Tags",
+    "tagsHint": "Separated by commas"
+  },
+  "category": {
+    "createTitle": "New category",
+    "renameTitle": "Rename category",
+    "nameLabel": "Category name"
+  },
+  "confirm": {
+    "deleteAppTitle": "Delete {{name}}?",
+    "deleteAppBody": "The app leaves the registry. The program or website is not touched.",
+    "deleteCategoryTitle": "Delete category {{name}}?",
+    "deleteCategoryBody": "The apps in this category stay in the registry, without a category.",
+    "changedTitle": "{{name}} has changed",
+    "changedBody": "The program is no longer the one you confirmed last time. If you updated it yourself, launch it and confirm the new version.",
+    "changedConfirm": "Launch and confirm"
+  },
+  "status": {
+    "launched": "Launched: {{name}}",
+    "saved": "Saved: {{name}}",
+    "deleted": "Deleted: {{name}}"
+  },
+  "startup": {
+    "title": "The registry cannot be opened"
+  },
+  "errors": {
+    "DB_WRONG_KEY": "The key does not open the database, or the file is damaged.",
+    "DB_CIPHER_UNAVAILABLE": "Database encryption is not active: the registry is not opened.",
+    "DB_SCHEMA_TOO_NEW": "The registry was created by a newer version of the app.",
+    "DB_KEY_MISSING": "The registry exists, but its key is not in the Credential Manager. Your data has not been touched.",
+    "DB_KEY_INVALID": "The stored registry key is not valid.",
+    "NAME_INVALID": "The name must be 1 to 80 characters long, without control characters.",
+    "NAME_DUPLICATE": "An item with this name already exists.",
+    "URL_INVALID": "The address is not valid. Do not put a user name or password in the address.",
+    "SCHEME_NOT_ALLOWED": "This type of address is not allowed.",
+    "EXECUTABLE_INVALID": "Choose an existing .exe file.",
+    "EXECUTABLE_MISSING": "The program is no longer at the registered path.",
+    "HASH_MISMATCH": "The program has changed since it was last confirmed.",
+    "TAG_INVALID": "Each tag can be up to 32 characters, with at most 12 tags.",
+    "NOT_FOUND": "The item no longer exists.",
+    "IO_ERROR": "The file cannot be read.",
+    "DB_ERROR": "The registry returned an error.",
+    "KEYSTORE_UNAVAILABLE": "The Windows Credential Manager is not responding.",
+    "APP_DATA_UNAVAILABLE": "The app data folder is not accessible.",
+    "STATE_UNAVAILABLE": "Internal error: restart the app.",
+    "DIALOG_FAILED": "The file picker did not open.",
+    "PICK_EXPIRED": "Choose the program again.",
+    "LAUNCH_FAILED": "Windows did not launch the app.",
+    "UNKNOWN": "An unexpected error occurred."
   },
   "footer": {
     "version": "Version {{version}}",

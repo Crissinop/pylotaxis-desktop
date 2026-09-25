@@ -1,0 +1,8 @@
+#!/bin/sh
+# Verifica completa prima di ogni push (v0.2.0).
+#
+# Attivazione, una volta per ogni clone:  npm run hooks:install
+# Serve dove GitHub non permette di proteggere il ramo (repository privati con piano Free).
+# Si aggira con `git push --no-verify`: è una rete di sicurezza, non un vincolo.
+echo "pre-push: npm run verify"
+exec npm run verify

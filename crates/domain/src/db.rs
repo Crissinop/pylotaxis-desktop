@@ -22,17 +22,29 @@ impl DatabaseKey {
         Self(bytes)
     }
 
+    /// Chiave nuova dal generatore casuale del sistema operativo. (v0.2.0)
+    pub fn generate() -> Result<Self, Error> {
+        let mut bytes = [0_u8; KEY_LEN];
+        getrandom::fill(&mut bytes).map_err(|_| Error::KeyInvalid)?;
+        Ok(Self(bytes))
+    }
+
+    /// Ricostruisce la chiave letta dal Credential Manager, rifiutando lunghezze diverse.
+    pub fn from_slice(bytes: &[u8]) -> Result<Self, Error> {
+        <[u8; KEY_LEN]>::try_from(bytes)
+            .map(Self)
+            .map_err(|_| Error::KeyInvalid)
+    }
+
+    /// Byte della chiave, solo per salvarla nel Credential Manager. Il nome rende
+    /// visibile nel codice ogni punto in cui il segreto esce da questo tipo. (v0.2.0)
+    pub fn expose_secret(&self) -> &[u8; KEY_LEN] {
+        &self.0
+    }
+
     /// Valore per `PRAGMA key` nella forma a chiave grezza di SQLCipher.
     fn pragma_value(&self) -> String {
-        const HEX: &[u8; 16] = b"0123456789ABCDEF";
-        let mut out = String::with_capacity(KEY_LEN * 2 + 3);
-        out.push_str("x'");
-        for byte in self.0 {
-            out.push(char::from(HEX[usize::from(byte >> 4)]));
-            out.push(char::from(HEX[usize::from(byte & 0x0F)]));
-        }
-        out.push('\'');
-        out
+        format!("x'{}'", crate::hex::upper(&self.0))
     }
 }
 
@@ -50,19 +62,45 @@ struct Migration {
 
 /// Migrazioni in ordine, numerate da 1 senza buchi. Una migrazione rilasciata
 /// non si modifica mai: se ne aggiunge una nuova (A.7.4). (v0.1.0)
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    sql: include_str!("../migrations/0001_settings.sql"),
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        sql: include_str!("../migrations/0001_settings.sql"),
+    },
+    Migration {
+        version: 2,
+        sql: include_str!("../migrations/0002_registry.sql"),
+    },
+];
 
 /// Versione di schema più recente che questa build sa gestire.
 pub fn latest_schema_version() -> u32 {
     MIGRATIONS.last().map_or(0, |m| m.version)
 }
 
+/// Cosa fare all'avvio, secondo ciò che esiste su disco e nel Credential Manager. (v0.2.0)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyPlan {
+    /// Usare la chiave salvata (con o senza database esistente).
+    UseStored,
+    /// Primo avvio: generare una chiave, salvarla e solo dopo creare il database, così
+    /// un'interruzione non lascia mai un database senza la sua chiave.
+    GenerateAndStore,
+    /// Il database esiste ma la chiave no: fermarsi, mai sovrascrivere i dati.
+    Refuse,
+}
+
+pub fn plan_key(database_exists: bool, key_stored: bool) -> KeyPlan {
+    match (database_exists, key_stored) {
+        (_, true) => KeyPlan::UseStored,
+        (false, false) => KeyPlan::GenerateAndStore,
+        (true, false) => KeyPlan::Refuse,
+    }
+}
+
 /// Connessione aperta, verificata e migrata.
 pub struct Database {
-    conn: Connection,
+    pub(crate) conn: Connection,
 }
 
 impl Database {
@@ -238,6 +276,27 @@ mod tests {
         for (index, migration) in MIGRATIONS.iter().enumerate() {
             assert_eq!(migration.version as usize, index + 1);
         }
+    }
+
+    #[test]
+    fn key_plan_never_overwrites_an_existing_database() {
+        assert_eq!(plan_key(true, true), KeyPlan::UseStored);
+        assert_eq!(plan_key(false, true), KeyPlan::UseStored);
+        assert_eq!(plan_key(false, false), KeyPlan::GenerateAndStore);
+        assert_eq!(plan_key(true, false), KeyPlan::Refuse);
+    }
+
+    #[test]
+    fn generated_keys_are_random_and_round_trip() {
+        let a = DatabaseKey::generate().unwrap();
+        let b = DatabaseKey::generate().unwrap();
+        assert_ne!(a.expose_secret(), b.expose_secret());
+        let copy = DatabaseKey::from_slice(a.expose_secret()).unwrap();
+        assert_eq!(copy.expose_secret(), a.expose_secret());
+        assert!(matches!(
+            DatabaseKey::from_slice(&[1, 2, 3]),
+            Err(Error::KeyInvalid)
+        ));
     }
 
     #[test]

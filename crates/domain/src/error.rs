@@ -17,11 +17,73 @@ pub enum Error {
     #[error("lo schema del database è alla versione {found}, questa build arriva alla {supported}")]
     SchemaTooNew { found: u32, supported: u32 },
 
+    /// Esiste un database ma non la sua chiave: non lo si sovrascrive mai. (v0.2.0)
+    #[error("il database esiste ma la sua chiave non è nel Credential Manager")]
+    KeyMissing,
+
+    /// La chiave salvata non ha la lunghezza attesa. (v0.2.0)
+    #[error("la chiave salvata non è valida")]
+    KeyInvalid,
+
+    #[error("il nome non è valido")]
+    NameInvalid,
+
+    #[error("esiste già un elemento con questo nome")]
+    NameDuplicate,
+
+    #[error("l'indirizzo non è valido")]
+    UrlInvalid,
+
+    /// Schema non ammesso: `file:`, `javascript:`, schemi noti per abusi. (v0.2.0)
+    #[error("lo schema dell'indirizzo non è ammesso")]
+    SchemeNotAllowed,
+
+    #[error("il file scelto non è un eseguibile valido")]
+    ExecutableInvalid,
+
+    /// L'eseguibile registrato non esiste più nel percorso salvato.
+    #[error("l'eseguibile registrato non esiste più")]
+    ExecutableMissing,
+
+    /// L'eseguibile è cambiato dall'ultima conferma: non si avvia senza un nuovo consenso.
+    #[error("l'eseguibile è cambiato dall'ultima conferma")]
+    HashMismatch,
+
+    #[error("un tag non è valido o sono troppi")]
+    TagInvalid,
+
+    #[error("elemento non trovato")]
+    NotFound,
+
+    #[error("errore di lettura del file: {0}")]
+    Io(#[from] std::io::Error),
+
     #[error("errore del database: {0}")]
     Sqlite(rusqlite::Error),
 }
 
 impl Error {
+    /// Tutti i codici, nell'ordine delle varianti. Un test verifica che coincidano con
+    /// `code()`; un altro, nel guscio, che ciascuno abbia una traduzione. (v0.2.0)
+    pub const ALL_CODES: &[&str] = &[
+        "DB_WRONG_KEY",
+        "DB_CIPHER_UNAVAILABLE",
+        "DB_SCHEMA_TOO_NEW",
+        "DB_KEY_MISSING",
+        "DB_KEY_INVALID",
+        "NAME_INVALID",
+        "NAME_DUPLICATE",
+        "URL_INVALID",
+        "SCHEME_NOT_ALLOWED",
+        "EXECUTABLE_INVALID",
+        "EXECUTABLE_MISSING",
+        "HASH_MISMATCH",
+        "TAG_INVALID",
+        "NOT_FOUND",
+        "IO_ERROR",
+        "DB_ERROR",
+    ];
+
     /// Codice stabile: una volta rilasciato non cambia, perché il frontend e le
     /// traduzioni dipendono da lui. (v0.1.0)
     pub fn code(&self) -> &'static str {
@@ -29,6 +91,18 @@ impl Error {
             Self::WrongKeyOrCorrupt => "DB_WRONG_KEY",
             Self::CipherUnavailable => "DB_CIPHER_UNAVAILABLE",
             Self::SchemaTooNew { .. } => "DB_SCHEMA_TOO_NEW",
+            Self::KeyMissing => "DB_KEY_MISSING",
+            Self::KeyInvalid => "DB_KEY_INVALID",
+            Self::NameInvalid => "NAME_INVALID",
+            Self::NameDuplicate => "NAME_DUPLICATE",
+            Self::UrlInvalid => "URL_INVALID",
+            Self::SchemeNotAllowed => "SCHEME_NOT_ALLOWED",
+            Self::ExecutableInvalid => "EXECUTABLE_INVALID",
+            Self::ExecutableMissing => "EXECUTABLE_MISSING",
+            Self::HashMismatch => "HASH_MISMATCH",
+            Self::TagInvalid => "TAG_INVALID",
+            Self::NotFound => "NOT_FOUND",
+            Self::Io(_) => "IO_ERROR",
             Self::Sqlite(_) => "DB_ERROR",
         }
     }
@@ -36,10 +110,21 @@ impl Error {
 
 impl From<rusqlite::Error> for Error {
     fn from(err: rusqlite::Error) -> Self {
-        // SQLITE_NOTADB è la risposta di SQLCipher a una chiave sbagliata: la
-        // riconosciamo qui, in un solo punto, invece di confrontare messaggi. (v0.1.0)
+        // SQLITE_NOTADB è la risposta di SQLCipher a una chiave sbagliata; un vincolo UNIQUE
+        // violato è un nome duplicato; una chiave esterna violata punta a un elemento che non
+        // esiste. Si riconoscono qui, in un solo punto. (v0.2.0)
         match err.sqlite_error_code() {
             Some(ErrorCode::NotADatabase) => Self::WrongKeyOrCorrupt,
+            Some(ErrorCode::ConstraintViolation) => {
+                let message = err.to_string();
+                if message.contains("UNIQUE constraint failed") {
+                    Self::NameDuplicate
+                } else if message.contains("FOREIGN KEY constraint failed") {
+                    Self::NotFound
+                } else {
+                    Self::Sqlite(err)
+                }
+            }
             _ => Self::Sqlite(err),
         }
     }
@@ -49,23 +134,43 @@ impl From<rusqlite::Error> for Error {
 mod tests {
     use super::*;
 
-    #[test]
-    fn codes_are_unique_and_upper_snake_case() {
-        let codes = [
-            Error::WrongKeyOrCorrupt.code(),
-            Error::CipherUnavailable.code(),
+    fn one_of_each() -> Vec<Error> {
+        vec![
+            Error::WrongKeyOrCorrupt,
+            Error::CipherUnavailable,
             Error::SchemaTooNew {
                 found: 2,
                 supported: 1,
-            }
-            .code(),
-            Error::Sqlite(rusqlite::Error::InvalidQuery).code(),
-        ];
-        let mut sorted = codes.to_vec();
+            },
+            Error::KeyMissing,
+            Error::KeyInvalid,
+            Error::NameInvalid,
+            Error::NameDuplicate,
+            Error::UrlInvalid,
+            Error::SchemeNotAllowed,
+            Error::ExecutableInvalid,
+            Error::ExecutableMissing,
+            Error::HashMismatch,
+            Error::TagInvalid,
+            Error::NotFound,
+            Error::Io(std::io::Error::other("prova")),
+            Error::Sqlite(rusqlite::Error::InvalidQuery),
+        ]
+    }
+
+    #[test]
+    fn all_codes_lists_every_variant_in_order() {
+        let codes: Vec<&str> = one_of_each().iter().map(Error::code).collect();
+        assert_eq!(codes, Error::ALL_CODES);
+    }
+
+    #[test]
+    fn codes_are_unique_and_upper_snake_case() {
+        let mut sorted = Error::ALL_CODES.to_vec();
         sorted.sort_unstable();
         sorted.dedup();
-        assert_eq!(sorted.len(), codes.len(), "codici duplicati: {codes:?}");
-        for code in codes {
+        assert_eq!(sorted.len(), Error::ALL_CODES.len(), "codici duplicati");
+        for code in Error::ALL_CODES {
             assert!(
                 code.chars().all(|c| c.is_ascii_uppercase() || c == '_'),
                 "codice non valido: {code}"

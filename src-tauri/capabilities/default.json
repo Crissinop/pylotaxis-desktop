@@ -1,7 +1,18 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Finestra principale: solo i comandi che usa davvero (A.7.10).",
+  "description": "Finestra principale: solo i comandi che usa davvero (A.7.10). Nessun permesso dei plugin: dialog e opener si usano solo da Rust.",
   "windows": ["main"],
-  "permissions": ["allow-app-info"]
+  "permissions": [
+    "allow-app-info",
+    "allow-registry-list",
+    "allow-category-create",
+    "allow-category-rename",
+    "allow-category-delete",
+    "allow-executable-pick",
+    "allow-app-create",
+    "allow-app-update",
+    "allow-app-delete",
+    "allow-app-launch"
+  ]
 }

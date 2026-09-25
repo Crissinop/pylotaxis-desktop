@@ -1,7 +1,98 @@
 {
+  "actions": {
+    "addApp": "Aggiungi un'app",
+    "addFirstApp": "Aggiungi la prima app",
+    "newCategory": "Nuova categoria",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "rename": "Rinomina",
+    "retry": "Riprova"
+  },
   "registry": {
     "emptyTitle": "Il registro è vuoto",
-    "emptyBody": "Qui compariranno le app che registri: programmi installati, indirizzi web e protocolli."
+    "emptyBody": "Qui compariranno le app che registri: programmi installati, indirizzi web e protocolli.",
+    "uncategorized": "Senza categoria",
+    "launch": "Avvia {{name}}",
+    "editApp": "Modifica {{name}}",
+    "deleteApp": "Elimina {{name}}",
+    "renameCategory": "Rinomina la categoria {{name}}",
+    "deleteCategory": "Elimina la categoria {{name}}",
+    "kind": {
+      "executable": "Programma",
+      "web": "Web",
+      "protocol": "Protocollo"
+    }
+  },
+  "form": {
+    "createTitle": "Aggiungi un'app",
+    "editTitle": "Modifica {{name}}",
+    "kindLabel": "Tipo",
+    "kindExecutable": "Programma installato",
+    "kindWeb": "Indirizzo web",
+    "kindProtocol": "Protocollo",
+    "pickExecutable": "Scegli il programma…",
+    "pickAgain": "Scegli un altro programma…",
+    "pickDialogTitle": "Scegli il programma da registrare",
+    "pickFilter": "Programmi",
+    "pickedFile": "File scelto",
+    "noFilePicked": "Nessun programma scelto",
+    "urlLabel": "Indirizzo",
+    "urlHint": "Solo http:// o https://",
+    "uriLabel": "URI del protocollo",
+    "uriHint": "Ad esempio ms-settings:display",
+    "nameLabel": "Nome",
+    "categoryLabel": "Categoria",
+    "tagsLabel": "Tag",
+    "tagsHint": "Separati da virgole"
+  },
+  "category": {
+    "createTitle": "Nuova categoria",
+    "renameTitle": "Rinomina la categoria",
+    "nameLabel": "Nome della categoria"
+  },
+  "confirm": {
+    "deleteAppTitle": "Eliminare {{name}}?",
+    "deleteAppBody": "L'app esce dal registro. Il programma o il sito non vengono toccati.",
+    "deleteCategoryTitle": "Eliminare la categoria {{name}}?",
+    "deleteCategoryBody": "Le app della categoria restano nel registro, senza categoria.",
+    "changedTitle": "{{name}} è cambiato",
+    "changedBody": "Il programma non è più quello confermato l'ultima volta. Se l'hai aggiornato tu, avvialo e conferma la nuova versione.",
+    "changedConfirm": "Avvia e conferma"
+  },
+  "status": {
+    "launched": "Avviato: {{name}}",
+    "saved": "Salvato: {{name}}",
+    "deleted": "Eliminato: {{name}}"
+  },
+  "startup": {
+    "title": "Il registro non si apre"
+  },
+  "errors": {
+    "DB_WRONG_KEY": "La chiave non apre il database, oppure il file è danneggiato.",
+    "DB_CIPHER_UNAVAILABLE": "La cifratura del database non è attiva: il registro non viene aperto.",
+    "DB_SCHEMA_TOO_NEW": "Il registro è stato creato da una versione più recente dell'app.",
+    "DB_KEY_MISSING": "Il registro esiste, ma la sua chiave non è nel Credential Manager. I dati non sono stati toccati.",
+    "DB_KEY_INVALID": "La chiave salvata del registro non è valida.",
+    "NAME_INVALID": "Il nome deve avere da 1 a 80 caratteri, senza caratteri di controllo.",
+    "NAME_DUPLICATE": "Esiste già un elemento con questo nome.",
+    "URL_INVALID": "L'indirizzo non è valido. Non inserire nome utente o password nell'indirizzo.",
+    "SCHEME_NOT_ALLOWED": "Questo tipo di indirizzo non è ammesso.",
+    "EXECUTABLE_INVALID": "Scegli un file .exe esistente.",
+    "EXECUTABLE_MISSING": "Il programma non si trova più nel percorso registrato.",
+    "HASH_MISMATCH": "Il programma è cambiato dall'ultima conferma.",
+    "TAG_INVALID": "Ogni tag può avere al massimo 32 caratteri, fino a 12 tag.",
+    "NOT_FOUND": "L'elemento non esiste più.",
+    "IO_ERROR": "Il file non si può leggere.",
+    "DB_ERROR": "Il registro ha risposto con un errore.",
+    "KEYSTORE_UNAVAILABLE": "Il Credential Manager di Windows non risponde.",
+    "APP_DATA_UNAVAILABLE": "La cartella dei dati dell'app non è accessibile.",
+    "STATE_UNAVAILABLE": "Errore interno: riavvia l'app.",
+    "DIALOG_FAILED": "La finestra di scelta del file non si è aperta.",
+    "PICK_EXPIRED": "Scegli di nuovo il programma.",
+    "LAUNCH_FAILED": "Windows non ha avviato l'app.",
+    "UNKNOWN": "Si è verificato un errore imprevisto."
   },
   "footer": {
     "version": "Versione {{version}}",

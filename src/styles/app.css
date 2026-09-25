@@ -19,6 +19,13 @@ body {
   line-height: 1.5;
 }
 
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
 /* Fuoco sempre visibile: la navigazione da tastiera è il percorso principale (A.7.8). */
 :focus-visible {
   outline: 2px solid var(--color-accent);
@@ -34,9 +41,16 @@ body {
 .shell__header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-4);
   padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--color-rule);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .wordmark {
@@ -46,19 +60,71 @@ body {
   letter-spacing: 0.01em;
 }
 
+.toolbar {
+  display: flex;
+  gap: var(--space-2);
+}
+
 .shell__main {
-  display: grid;
-  place-items: center;
-  padding: var(--space-8) var(--space-6);
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+/* Pulsanti: il primario è unico per area; gli altri restano leggibili ma secondari (A.8). */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.button--primary {
+  background: var(--color-primary-bg);
+  color: var(--color-primary-text);
+}
+
+.button--secondary {
+  border-color: var(--color-border);
+}
+
+.button--ghost {
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.button--ghost:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.button--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
   max-width: 44ch;
+  margin: 12vh auto 0;
   text-align: center;
 }
 
 .empty-state__title {
-  margin: 0 0 var(--space-2);
+  margin: 0;
   font-family: var(--font-display);
   font-size: 28px;
   font-weight: 400;
@@ -70,14 +136,225 @@ body {
   color: var(--color-text-muted);
 }
 
+.registry {
+  display: grid;
+  gap: var(--space-8);
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.section__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.section__actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.app-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.app-row__launch {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-row__launch:hover .app-row__name {
+  text-decoration: underline;
+}
+
+.app-row__name {
+  font-weight: 600;
+}
+
+.app-row__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.app-row__target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-row__actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.badge {
+  flex: none;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-rule);
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--color-rule);
+  font-size: 12px;
+}
+
+.dialog {
+  width: min(520px, calc(100vw - 48px));
+  padding: var(--space-6);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-dialog);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.dialog::backdrop {
+  background: var(--color-backdrop);
+}
+
+.dialog__title {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.dialog__body {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.form__error {
+  margin: 0;
+  color: var(--color-danger);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field__label {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field__input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+}
+
+.field__hint,
+.field__value {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.field .button {
+  justify-self: start;
+}
+
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
 .shell__footer {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
   min-height: 40px;
   padding: 0 var(--space-6);
   border-top: 1px solid var(--color-rule);
   color: var(--color-text-muted);
   font-size: 13px;
+}
+
+.status {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version {
+  flex: none;
   font-variant-numeric: tabular-nums;
 }
 

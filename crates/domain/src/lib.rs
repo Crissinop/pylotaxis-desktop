@@ -5,7 +5,11 @@
 
 pub mod db;
 mod error;
+mod hex;
+pub mod launch;
+pub mod registry;
 
+pub use db::{Database, DatabaseKey, KeyPlan, plan_key};
 pub use error::Error;
 
 /// Nome del prodotto. È uno dei punti elencati nella Scheda (A.2): un cambio di

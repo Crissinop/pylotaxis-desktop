@@ -24,6 +24,7 @@ usano la cache.
 
 ```powershell
 npm ci                 # dipendenze esatte dal package-lock.json
+npm run hooks:install  # una volta per clone: npm run verify prima di ogni push
 npm run tauri dev      # sviluppo; da lanciare da solo, Ctrl+C per uscire
 npm run verify         # tutte le verifiche, come in CI
 npm run tauri build    # installer NSIS in target/release/bundle/nsis/
@@ -32,6 +33,19 @@ npm run tauri build    # installer NSIS in target/release/bundle/nsis/
 `npm run verify` esegue in sequenza: controllo delle versioni allineate, controllo del nome,
 type-check, ESLint, Prettier, Vitest, rustfmt, Clippy con `-D warnings`, `cargo test`.
 
+## Dati e chiave
+
+| Cosa                         | Dove                                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------- |
+| Registro cifrato (SQLCipher) | `%LOCALAPPDATA%\com.crissinop.pylotaxis\registry.db`                              |
+| Chiave del registro          | Credential Manager di Windows, voce `com.crissinop.pylotaxis`, persistenza locale |
+
+Entrambi restano su questa macchina: il registro contiene percorsi locali. La chiave nasce al
+primo avvio e si salva **prima** che il file venga creato. Se il file esiste ma la chiave non c'è,
+l'app mostra "Il registro non si apre" e non tocca i dati: non esiste un recupero senza la chiave.
+Il backup cifrato arriva con la v0.6.0; fino ad allora, per ricominciare da zero, chiudi l'app e
+sposta altrove `registry.db`.
+
 ## Struttura
 
 ```text
@@ -39,6 +53,8 @@ crates/domain/        Regole e persistenza (SQLCipher, migrazioni), senza Tauri
   migrations/         Migrazioni SQL numerate: una migrazione rilasciata non si modifica mai
 src-tauri/            Guscio Tauri: comandi sottili, capability, configurazione, icone
 src/                  Interfaccia React: presenta, non decide
+  features/registry/  Elenco, modulo di inserimento e sezioni per categoria
+  lib/                Ponte verso i comandi Rust, codici d'errore, tag
   i18n/               Italiano (riferimento) e inglese, con test di parità
   styles/tokens.css   Token dell'identità: unica fonte di colori e tipografia
 scripts/              Controlli di versioni e nome, generazione delle icone
@@ -49,6 +65,9 @@ branding/             Sorgenti SVG del simbolo e dell'icona
 
 - **Comandi chiusi per default.** Un comando Tauri nuovo va elencato in `src-tauri/build.rs` e
   concesso in `src-tauri/capabilities/default.json`; altrimenti Tauri lo rifiuta.
+- **Nessun percorso dal webview.** Un eseguibile si registra solo con la finestra di scelta di
+  Windows, aperta da Rust; il frontend riceve un gettone monouso. Si avvia per id, e un
+  eseguibile cambiato dall'ultima conferma non parte senza un nuovo consenso.
 - **Nome in punti noti.** Il nome del prodotto compare solo nelle costanti `APP_NAME`
   (`src/constants/app.ts`, `crates/domain/src/lib.rs`) e nei manifest; `npm run check:name` lo verifica.
 - **Versione unica.** `package.json`, `Cargo.toml` alla radice e `src-tauri/tauri.conf.json` riportano
