@@ -43,8 +43,33 @@ type-check, ESLint, Prettier, Vitest, rustfmt, Clippy con `-D warnings`, `cargo 
 Entrambi restano su questa macchina: il registro contiene percorsi locali. La chiave nasce al
 primo avvio e si salva **prima** che il file venga creato. Se il file esiste ma la chiave non c'è,
 l'app mostra "Il registro non si apre" e non tocca i dati: non esiste un recupero senza la chiave.
-Il backup cifrato arriva con la v0.6.0; fino ad allora, per ricominciare da zero, chiudi l'app e
+Il backup cifrato arriva con la v0.7.0; fino ad allora, per ricominciare da zero, chiudi l'app e
 sposta altrove `registry.db`.
+
+## Blocco
+
+Dalla v0.3.0 il registro si può proteggere con un PIN, da **Sicurezza** nella barra in alto.
+Con il PIN impostato l'app si blocca a ogni avvio, dopo il periodo di inattività di sistema scelto
+(15 minuti se non lo cambi), quando si blocca o si scollega la sessione di Windows, e con Ctrl+L.
+Si sblocca con il PIN oppure, se attivato, con Windows Hello.
+
+| Cosa                | Dove e come                                                                                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| PIN                 | Solo la sua impronta Argon2id (64 MiB, 3 passate, 4 corsie), dentro il registro cifrato. Il PIN in chiaro non si salva da nessuna parte |
+| Tentativi sbagliati | 5 liberi, poi un'attesa da 30 secondi che raddoppia fino a 15 minuti. Il conteggio sta nel registro: riavviare l'app non lo azzera      |
+| Windows Hello       | Un'alternativa al PIN, mai l'unico modo per entrare: si attiva solo con il PIN impostato e dopo una verifica riuscita                   |
+
+Il blocco lo applica Rust: da bloccata ogni comando tranne lo sblocco viene rifiutato con `LOCKED`.
+È un **blocco di presenza**: ferma chi siede a questo computer. Non protegge da un programma già in
+esecuzione nella tua sessione di Windows, che può leggere la chiave dal Credential Manager; la
+custodia separata dei segreti arriva con la v0.4.0.
+
+Se dimentichi il PIN non c'è un recupero: il registro è intatto ma non si sblocca. Il backup e il
+recupero arrivano con la v0.7.0.
+
+Da provare a mano sulla macchina, perché dipende da Windows e non da un test automatico: il prompt di
+Windows Hello davanti alla finestra dell'app, Win+L e il ritorno dalla sospensione (l'app deve
+risultare bloccata), una sessione di Desktop remoto scollegata.
 
 ## Struttura
 
@@ -52,8 +77,13 @@ sposta altrove `registry.db`.
 crates/domain/        Regole e persistenza (SQLCipher, migrazioni), senza Tauri
   migrations/         Migrazioni SQL numerate: una migrazione rilasciata non si modifica mai
 src-tauri/            Guscio Tauri: comandi sottili, capability, configurazione, icone
+  app_commands.rs     Elenco unico dei comandi: permessi (build.rs) e test del blocco
+  src/lock.rs         Filtro del blocco davanti a ogni comando, controllo automatico
+  src/platform/       Windows Hello, inattività e sessione: l'unico codice `unsafe`
 src/                  Interfaccia React: presenta, non decide
   features/registry/  Elenco, modulo di inserimento e sezioni per categoria
+  features/lock/      Schermata di blocco (solo presentazione)
+  features/security/  Impostazioni di sicurezza e finestra del PIN
   lib/                Ponte verso i comandi Rust, codici d'errore, tag
   i18n/               Italiano (riferimento) e inglese, con test di parità
   styles/tokens.css   Token dell'identità: unica fonte di colori e tipografia
@@ -63,8 +93,12 @@ branding/             Sorgenti SVG del simbolo e dell'icona
 
 ## Regole che il codice fa rispettare
 
-- **Comandi chiusi per default.** Un comando Tauri nuovo va elencato in `src-tauri/build.rs` e
-  concesso in `src-tauri/capabilities/default.json`; altrimenti Tauri lo rifiuta.
+- **Comandi chiusi per default.** Un comando Tauri nuovo va elencato in `src-tauri/app_commands.rs`
+  e concesso in `src-tauri/capabilities/default.json`; altrimenti Tauri lo rifiuta. Un test
+  confronta i due elenchi.
+- **Bloccata vuol dire bloccata.** Da bloccata passano solo `app_info`, `lock_status`, `unlock_pin` e
+  `unlock_hello`; un comando nuovo nasce rifiutato finché non lo si aggiunge di proposito a
+  `ALLOWED_WHILE_LOCKED` (`src-tauri/src/lock.rs`). Nessun comando restituisce il PIN o la sua impronta.
 - **Nessun percorso dal webview.** Un eseguibile si registra solo con la finestra di scelta di
   Windows, aperta da Rust; il frontend riceve un gettone monouso. Si avvia per id, e un
   eseguibile cambiato dall'ultima conferma non parte senza un nuovo consenso.

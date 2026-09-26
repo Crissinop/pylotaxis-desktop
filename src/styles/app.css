@@ -334,6 +334,171 @@ select {
   cursor: pointer;
 }
 
+/* Schermata di blocco: solo presentazione, il blocco lo applica Rust (v0.3.0). */
+.lock {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  max-width: 36ch;
+  margin: 12vh auto 0;
+  text-align: center;
+}
+
+.lock__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.lock__body {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.lock__hello {
+  min-height: 40px;
+}
+
+.lock__form {
+  display: grid;
+  justify-items: stretch;
+  gap: var(--space-1);
+  width: 100%;
+  margin-top: var(--space-2);
+  text-align: start;
+}
+
+.lock__pin-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.lock__pin {
+  flex: 1;
+}
+
+/* Altezza riservata a errore e conto alla rovescia: il form non salta (A.8). */
+.lock__message {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.field__input--pin,
+.lock__pin {
+  letter-spacing: 0.25em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Impostazioni: gruppi separati da un filetto, una colonna leggibile (v0.3.0). */
+.settings {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 60ch;
+}
+
+.settings__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.settings__group {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-rule);
+}
+
+.settings__heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings__text {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.settings__label {
+  font-weight: 600;
+}
+
+.settings__select {
+  width: auto;
+  min-width: 24ch;
+}
+
+.settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.settings__error {
+  min-height: 1.4em;
+}
+
+/* Interruttore: pulsante con role="switch"; lo stato viene da aria-checked. */
+.switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.switch:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: transform 120ms ease-out;
+}
+
+.switch[aria-checked='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.switch[aria-checked='true'] .switch__thumb {
+  background: var(--color-primary-text);
+  transform: translateX(20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch__thumb {
+    transition: none;
+  }
+}
+
 .shell__footer {
   display: flex;
   align-items: center;

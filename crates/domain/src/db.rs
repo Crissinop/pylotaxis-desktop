@@ -14,7 +14,7 @@ pub const KEY_LEN: usize = 32;
 ///
 /// È casuale, non una password: per questo si passa a SQLCipher in forma
 /// esadecimale (`x'…'`), che salta la derivazione PBKDF2 pensata per le password.
-/// Dalla v0.3.0 verrà generata e custodita nel Credential Manager. (v0.1.0)
+/// La genera e la custodisce il Credential Manager di Windows (v0.2.0). (v0.1.0)
 pub struct DatabaseKey([u8; KEY_LEN]);
 
 impl DatabaseKey {
@@ -70,6 +70,10 @@ const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 2,
         sql: include_str!("../migrations/0002_registry.sql"),
+    },
+    Migration {
+        version: 3,
+        sql: include_str!("../migrations/0003_lock.sql"),
     },
 ];
 
@@ -269,6 +273,59 @@ mod tests {
             matches!(err, Error::SchemaTooNew { found: 99, .. }),
             "{err:?}"
         );
+    }
+
+    /// Crea un database fermo alla versione `version`, come l'avrebbe lasciato una build
+    /// precedente, con un dato per ogni tabella che a quella versione esiste già.
+    fn database_at_version(path: &Path, key: &DatabaseKey, version: u32) {
+        let mut conn = Connection::open(path).unwrap();
+        conn.pragma_update(None, "key", key.pragma_value()).unwrap();
+        for migration in MIGRATIONS.iter().filter(|m| m.version <= version) {
+            let tx = conn.transaction().unwrap();
+            tx.execute_batch(migration.sql).unwrap();
+            tx.pragma_update(None, "user_version", migration.version)
+                .unwrap();
+            tx.commit().unwrap();
+        }
+        if version >= 1 {
+            conn.execute("INSERT INTO settings VALUES ('theme', 'dark')", [])
+                .unwrap();
+        }
+        if version >= 2 {
+            conn.execute(
+                "INSERT INTO categories (id, name) VALUES ('0190a000-0000-7000-8000-000000000001', 'Lavoro')",
+                [],
+            )
+            .unwrap();
+        }
+    }
+
+    /// Ogni migrazione si prova da ogni versione precedente, non solo da un file vuoto
+    /// (A.7.4): i dati esistenti restano, e il blocco nasce spento. (v0.3.0)
+    #[test]
+    fn migrates_from_every_previous_version_keeping_the_data() {
+        for version in 0..latest_schema_version() {
+            let (_dir, path) = temp_db();
+            database_at_version(&path, &key(6), version);
+            let db = Database::open(&path, &key(6)).unwrap();
+            assert_eq!(db.schema_version().unwrap(), latest_schema_version());
+            if version >= 1 {
+                assert_eq!(db.setting("theme").unwrap().as_deref(), Some("dark"));
+            }
+            if version >= 2 {
+                let names: Vec<String> = db
+                    .registry()
+                    .unwrap()
+                    .categories
+                    .into_iter()
+                    .map(|c| c.name)
+                    .collect();
+                assert_eq!(names, ["Lavoro"], "da v{version}");
+            }
+            let lock = db.lock_settings().unwrap();
+            assert!(!lock.pin_set && !lock.hello_enabled, "da v{version}");
+            assert_eq!(lock.idle_minutes, Some(crate::lock::IDLE_DEFAULT_MINUTES));
+        }
     }
 
     #[test]

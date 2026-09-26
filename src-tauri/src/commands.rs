@@ -1,4 +1,4 @@
-//! Comandi esposti al webview. Ogni comando va elencato anche in build.rs e concesso
+//! Comandi esposti al webview. Ogni comando va elencato anche in app_commands.rs e concesso
 //! in capabilities/default.json, altrimenti viene rifiutato (A.7.10). (v0.1.0)
 //!
 //! I comandi sono sottili: leggono l'input, delegano al dominio, traducono l'errore (A.7.3).
@@ -9,7 +9,7 @@ use domain::launch::{LaunchPlan, plan_launch};
 use domain::registry::{App, AppInput, Category, Registry, Target, inspect_executable};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
@@ -108,7 +108,9 @@ impl From<Registry> for RegistryDto {
     }
 }
 
-fn clip(text: &str) -> String {
+/// Accorcia i testi dell'interfaccia passati alle finestre di sistema (scelta dei file,
+/// prompt di Windows Hello).
+pub(crate) fn clip(text: &str) -> String {
     text.chars().take(DIALOG_TEXT_MAX_CHARS).collect()
 }
 
@@ -168,8 +170,8 @@ pub async fn category_delete(state: State<'_, AppState>, id: String) -> Result<(
 /// percorso entra nel registro: richiede un gesto dell'utente e non si può simulare
 /// dal webview (A.7.10). I testi arrivano dal frontend, già tradotti.
 #[tauri::command]
-pub async fn executable_pick(
-    app: AppHandle,
+pub async fn executable_pick<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, AppState>,
     title: String,
     filter_label: String,
@@ -238,8 +240,8 @@ pub async fn app_delete(state: State<'_, AppState>, id: String) -> Result<(), Co
 /// Avvia un'app registrata, per id. Un eseguibile cambiato dall'ultima conferma risponde
 /// `HASH_MISMATCH`; l'interfaccia chiede conferma e riprova con `accept_changed`.
 #[tauri::command]
-pub async fn app_launch(
-    app: AppHandle,
+pub async fn app_launch<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, AppState>,
     id: String,
     accept_changed: bool,

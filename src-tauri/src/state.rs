@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::CommandError;
 use crate::keystore::KeyStore;
+use crate::lock::LockState;
 
 /// Nome del file del database nella cartella dati dell'app.
 pub const DATABASE_FILE: &str = "registry.db";
@@ -27,17 +28,44 @@ pub struct AppState {
     db: Mutex<Result<Database, CommandError>>,
     /// Una sola scelta in sospeso: il modulo di inserimento ne gestisce una alla volta.
     pick: Mutex<Option<PendingPick>>,
+    pub lock: LockState,
 }
 
 impl AppState {
+    /// La configurazione del blocco si legge subito: un'app con il PIN parte bloccata. Se la
+    /// lettura fallisce, l'errore prende il posto del database, così nessun comando parte da
+    /// uno stato del blocco sconosciuto (v0.3.0).
     pub fn new(db: Result<Database, CommandError>) -> Self {
+        let opened = db.and_then(|db| {
+            let settings = db.lock_settings()?;
+            Ok((db, settings))
+        });
+        let (db, lock) = match opened {
+            Ok((db, settings)) => (Ok(db), LockState::starting_from(Some(&settings))),
+            Err(error) => (Err(error), LockState::starting_from(None)),
+        };
         Self {
             db: Mutex::new(db),
             pick: Mutex::new(None),
+            lock,
         }
     }
 
+    /// Accesso al registro. Da bloccata rifiuta, anche se il comando ha superato il filtro un
+    /// attimo prima del blocco (v0.3.0).
     pub fn with_db<T>(
+        &self,
+        f: impl FnOnce(&Database) -> Result<T, CommandError>,
+    ) -> Result<T, CommandError> {
+        if self.lock.is_locked() {
+            return Err(CommandError::LOCKED);
+        }
+        self.with_db_even_if_locked(f)
+    }
+
+    /// Accesso anche da bloccata: solo per lo stato del blocco e lo sblocco (security.rs).
+    /// Il nome rende visibile nel codice ogni punto in cui si fa un'eccezione. (v0.3.0)
+    pub fn with_db_even_if_locked<T>(
         &self,
         f: impl FnOnce(&Database) -> Result<T, CommandError>,
     ) -> Result<T, CommandError> {
@@ -55,6 +83,16 @@ impl AppState {
         self.pick
             .lock()
             .map_err(|_| CommandError::STATE_UNAVAILABLE)
+    }
+
+    /// Blocca e scarta la scelta di un eseguibile in sospeso: un gettone non sopravvive al
+    /// blocco. Vero se l'app era sbloccata. (v0.3.0)
+    pub fn engage_lock(&self) -> bool {
+        let changed = self.lock.engage();
+        if changed && let Ok(mut pick) = self.pick.lock() {
+            *pick = None;
+        }
+        changed
     }
 }
 
@@ -207,6 +245,45 @@ mod tests {
         let keep = || TargetInput::Executable { pick_token: None };
         assert!(resolve_target(keep(), &mut None, None).is_err());
         assert!(resolve_target(keep(), &mut None, Some(&web_app)).is_err());
+    }
+
+    fn locked_state() -> (tempfile::TempDir, AppState) {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Database::open(
+            &dir.path().join("r.db"),
+            &DatabaseKey::from_bytes([5; domain::db::KEY_LEN]),
+        )
+        .unwrap();
+        db.set_pin(None, "482915", 0).unwrap();
+        (dir, AppState::new(Ok(db)))
+    }
+
+    /// Secondo controllo, dietro il filtro: da bloccata il registro non si legge nemmeno
+    /// da un comando che il filtro avesse lasciato passare un attimo prima (v0.3.0).
+    #[test]
+    fn a_locked_state_refuses_the_registry_but_not_the_lock_screen() {
+        let (_dir, state) = locked_state();
+        assert!(state.lock.is_locked(), "configurata: parte bloccata");
+        assert_eq!(
+            state.with_db(|db| Ok(db.registry()?)).unwrap_err(),
+            CommandError::LOCKED
+        );
+        assert!(
+            state
+                .with_db_even_if_locked(|db| Ok(db.lock_settings()?))
+                .is_ok()
+        );
+        state.lock.release();
+        assert!(state.with_db(|db| Ok(db.registry()?)).is_ok());
+    }
+
+    #[test]
+    fn locking_discards_a_pending_pick() {
+        let (_dir, state) = locked_state();
+        state.lock.release();
+        *state.pick().unwrap() = Some(pick("in-sospeso"));
+        assert!(state.engage_lock());
+        assert!(state.pick().unwrap().is_none());
     }
 
     #[test]

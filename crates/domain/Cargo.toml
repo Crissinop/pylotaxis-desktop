@@ -6,6 +6,9 @@ publish = false
 description = "Regole e persistenza del portale, senza dipendenze da Tauri"
 
 [dependencies]
+# Impronta del PIN con Argon2id (RustCrypto). La 0.6 è la linea stabile dal 27/08/2026;
+# genera il sale con getrandom 0.4, la stessa versione già usata qui sotto. (v0.3.0)
+argon2 = "0.6.0"
 # SQLCipher e OpenSSL compilati dai sorgenti: nessuna libreria di sistema da installare
 # su Windows, a costo di una prima compilazione più lunga (v0.1.0).
 rusqlite = { version = "0.40.2", features = ["bundled-sqlcipher-vendored-openssl"] }

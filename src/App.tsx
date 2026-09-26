@@ -5,8 +5,10 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import { Mark } from './components/Mark';
 import { NameDialog } from './components/NameDialog';
 import { APP_NAME } from './constants/app';
+import { LockScreen } from './features/lock/LockScreen';
 import { AppDialog } from './features/registry/AppDialog';
 import { RegistryView } from './features/registry/RegistryView';
+import { SecurityView } from './features/security/SecurityView';
 import { errorCode } from './lib/errors';
 import {
   createApp,
@@ -14,11 +16,15 @@ import {
   deleteApp,
   deleteCategory,
   getAppInfo,
+  getLockStatus,
   launchApp,
   listRegistry,
+  lockNow,
+  onLockChanged,
   renameCategory,
   updateApp,
   type Category,
+  type LockStatus,
   type RegisteredApp,
   type Registry,
 } from './lib/ipc';
@@ -27,6 +33,14 @@ type RegistryState =
   | { status: 'loading' }
   | { status: 'ready'; registry: Registry }
   | { status: 'failed'; code: string };
+
+/** Stato del blocco come arriva da Rust; `receivedAt` fa partire l'attesa del PIN. (v0.3.0) */
+type LockView =
+  | { status: 'loading' }
+  | { status: 'ready'; lock: LockStatus; receivedAt: number }
+  | { status: 'failed'; code: string };
+
+type View = 'registry' | 'security';
 
 /** Una sola finestra aperta alla volta, descritta da dati e non da flag sparsi. */
 type Modal =
@@ -42,6 +56,18 @@ type Modal =
 const NO_MODAL: Modal = { type: 'none' };
 
 /**
+ * Ripiego se Rust avvisa del blocco ma lo stato completo non arriva: si mostra il PIN, che
+ * esiste sempre quando il blocco è configurato. (v0.3.0)
+ */
+const LOCKED_FALLBACK: LockStatus = {
+  locked: true,
+  pinSet: true,
+  helloEnabled: false,
+  idleMinutes: null,
+  retryAfterMs: 0,
+};
+
+/**
  * Legge il registro da Rust e lo traduce in uno stato dell'interfaccia. Il registro sta in
  * Rust: dopo ogni modifica si rilegge, invece di tenerne una copia locale che potrebbe
  * divergere (A.7.3). (v0.2.0)
@@ -54,20 +80,79 @@ async function loadRegistry(): Promise<RegistryState> {
   }
 }
 
+/**
+ * Avvio: prima lo stato del blocco, e il registro solo se l'app è sbloccata. Da bloccata
+ * Rust lo rifiuterebbe comunque; così non lo si chiede nemmeno. (v0.3.0)
+ */
+async function loadStartup(): Promise<{ lock: LockView; registry: RegistryState | null }> {
+  let lock: LockView;
+  try {
+    lock = { status: 'ready', lock: await getLockStatus(), receivedAt: Date.now() };
+  } catch (failure: unknown) {
+    lock = { status: 'failed', code: errorCode(failure) };
+  }
+  const unlocked = lock.status === 'ready' && !lock.lock.locked;
+  return { lock, registry: unlocked ? await loadRegistry() : null };
+}
+
 export default function App() {
   const { t } = useTranslation();
+  const [lockView, setLockView] = useState<LockView>({ status: 'loading' });
   const [registry, setRegistry] = useState<RegistryState>({ status: 'loading' });
+  const [view, setView] = useState<View>('registry');
   const [modal, setModal] = useState<Modal>(NO_MODAL);
   const [message, setMessage] = useState('');
   const [version, setVersion] = useState<string | null>(null);
 
   const reload = useCallback(async () => setRegistry(await loadRegistry()), []);
 
+  const applyStartup = useCallback((next: { lock: LockView; registry: RegistryState | null }) => {
+    setLockView(next.lock);
+    if (next.registry) setRegistry(next.registry);
+  }, []);
+
+  const applyLock = useCallback((lock: LockStatus) => {
+    setLockView({ status: 'ready', lock, receivedAt: Date.now() });
+  }, []);
+
+  /**
+   * L'app si è bloccata: il registro esce dalla memoria e dallo schermo, insieme a finestre
+   * aperte e messaggi (che contengono nomi di app). Poi si legge lo stato completo. (v0.3.0)
+   */
+  const hideForLock = useCallback(() => {
+    const now = Date.now();
+    setRegistry({ status: 'loading' });
+    setModal(NO_MODAL);
+    setMessage('');
+    setLockView((current) => ({
+      status: 'ready',
+      lock: { ...(current.status === 'ready' ? current.lock : LOCKED_FALLBACK), locked: true },
+      receivedAt: now,
+    }));
+    getLockStatus()
+      .then(applyLock)
+      .catch(() => undefined);
+  }, [applyLock]);
+
+  /** Un comando rifiutato con LOCKED porta alla schermata di blocco anche senza evento. */
+  const report = useCallback(
+    (failure: unknown) => {
+      const code = errorCode(failure);
+      if (code === 'LOCKED') hideForLock();
+      else setMessage(t(`errors.${code}`, { defaultValue: t('errors.UNKNOWN') }));
+    },
+    [hideForLock, t],
+  );
+
+  const lock = useCallback(() => {
+    lockNow().then(hideForLock).catch(report);
+  }, [hideForLock, report]);
+
   useEffect(() => {
     // Lo stato si aggiorna solo quando arriva la risposta, e non dopo lo smontaggio.
     let active = true;
-    void loadRegistry().then((next) => {
-      if (active) setRegistry(next);
+    void loadStartup().then((next) => {
+      if (active) applyStartup(next);
     });
     // La versione è accessoria: se non arriva, il resto funziona lo stesso (A.7.5).
     getAppInfo()
@@ -76,10 +161,44 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyStartup]);
 
-  const report = (failure: unknown) =>
-    setMessage(t(`errors.${errorCode(failure)}`, { defaultValue: t('errors.UNKNOWN') }));
+  useEffect(() => {
+    // Blocco deciso da Rust (inattività, sessione di Windows): arriva come evento. Se
+    // l'ascolto non parte, resta il filtro di Rust e il primo comando rifiutato. (v0.3.0)
+    let active = true;
+    let stop: (() => void) | null = null;
+    onLockChanged((locked) => {
+      if (locked) hideForLock();
+    })
+      .then((unlisten) => {
+        if (active) stop = unlisten;
+        else unlisten();
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, [hideForLock]);
+
+  const ready = lockView.status === 'ready' ? lockView.lock : null;
+  const locked = ready?.locked ?? false;
+  const canLock = ready !== null && ready.pinSet && !ready.locked;
+
+  useEffect(() => {
+    if (!canLock) return;
+    // Ctrl+L blocca subito, da qualunque punto dell'app (A.7.8, tastiera prima di tutto).
+    const onKey = (event: KeyboardEvent) => {
+      const plain = !event.altKey && !event.shiftKey && !event.metaKey;
+      if (event.ctrlKey && plain && event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        lock();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canLock, lock]);
 
   const launch = (app: RegisteredApp, acceptChanged: boolean) => {
     launchApp(app.id, acceptChanged)
@@ -104,6 +223,12 @@ export default function App() {
     registry.status === 'ready' &&
     registry.registry.apps.length === 0 &&
     registry.registry.categories.length === 0;
+  const startupFailure =
+    lockView.status === 'failed'
+      ? lockView.code
+      : registry.status === 'failed' && !locked
+        ? registry.code
+        : null;
 
   return (
     <div className="shell">
@@ -112,54 +237,99 @@ export default function App() {
           <Mark size={36} />
           <span className="wordmark">{APP_NAME}</span>
         </div>
-        {registry.status === 'ready' && !isEmpty && (
+        {ready && !locked && startupFailure === null && (
           <div className="toolbar">
+            {ready.pinSet && (
+              <button
+                type="button"
+                className="button button--ghost"
+                onClick={lock}
+                aria-keyshortcuts="Control+L"
+                title={t('actions.lockShortcut')}
+              >
+                {t('actions.lock')}
+              </button>
+            )}
             <button
               type="button"
-              className="button button--secondary"
-              onClick={() => setModal({ type: 'createCategory' })}
+              className="button button--ghost"
+              onClick={() => setView(view === 'security' ? 'registry' : 'security')}
             >
-              {t('actions.newCategory')}
+              {view === 'security' ? t('actions.backToRegistry') : t('actions.security')}
             </button>
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={() => setModal({ type: 'createApp' })}
-            >
-              {t('actions.addApp')}
-            </button>
+            {view === 'registry' && registry.status === 'ready' && !isEmpty && (
+              <>
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  onClick={() => setModal({ type: 'createCategory' })}
+                >
+                  {t('actions.newCategory')}
+                </button>
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={() => setModal({ type: 'createApp' })}
+                >
+                  {t('actions.addApp')}
+                </button>
+              </>
+            )}
           </div>
         )}
       </header>
 
       <main className="shell__main">
-        {registry.status === 'ready' && (
-          <RegistryView
-            registry={registry.registry}
-            onLaunch={(app) => launch(app, false)}
-            onEditApp={(app) => setModal({ type: 'editApp', app })}
-            onDeleteApp={(app) => setModal({ type: 'deleteApp', app })}
-            onRenameCategory={(category) => setModal({ type: 'renameCategory', category })}
-            onDeleteCategory={(category) => setModal({ type: 'deleteCategory', category })}
-            onAddApp={() => setModal({ type: 'createApp' })}
-            onAddCategory={() => setModal({ type: 'createCategory' })}
-          />
-        )}
-        {registry.status === 'failed' && (
+        {startupFailure !== null && (
           <section className="empty-state" role="alert">
             <h1 className="empty-state__title">{t('startup.title')}</h1>
             <p className="empty-state__body">
-              {t(`errors.${registry.code}`, { defaultValue: t('errors.UNKNOWN') })}
+              {t(`errors.${startupFailure}`, { defaultValue: t('errors.UNKNOWN') })}
             </p>
             <button
               type="button"
               className="button button--secondary"
-              onClick={() => void reload()}
+              onClick={() => void loadStartup().then(applyStartup)}
             >
               {t('actions.retry')}
             </button>
           </section>
         )}
+        {startupFailure === null && ready && locked && lockView.status === 'ready' && (
+          <LockScreen
+            key={lockView.receivedAt}
+            status={ready}
+            receivedAt={lockView.receivedAt}
+            onUnlocked={(next) => {
+              applyLock(next);
+              void reload();
+            }}
+          />
+        )}
+        {startupFailure === null && ready && !locked && view === 'security' && (
+          <SecurityView
+            status={ready}
+            onStatus={(next, text) => {
+              applyLock(next);
+              setMessage(text);
+            }}
+          />
+        )}
+        {startupFailure === null &&
+          !locked &&
+          view === 'registry' &&
+          registry.status === 'ready' && (
+            <RegistryView
+              registry={registry.registry}
+              onLaunch={(app) => launch(app, false)}
+              onEditApp={(app) => setModal({ type: 'editApp', app })}
+              onDeleteApp={(app) => setModal({ type: 'deleteApp', app })}
+              onRenameCategory={(category) => setModal({ type: 'renameCategory', category })}
+              onDeleteCategory={(category) => setModal({ type: 'deleteCategory', category })}
+              onAddApp={() => setModal({ type: 'createApp' })}
+              onAddCategory={() => setModal({ type: 'createCategory' })}
+            />
+          )}
       </main>
 
       {/* Altezza fissa: i messaggi compaiono senza spostare il resto del layout (A.8). */}

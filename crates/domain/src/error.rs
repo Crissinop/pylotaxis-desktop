@@ -55,6 +55,32 @@ pub enum Error {
     #[error("elemento non trovato")]
     NotFound,
 
+    /// Il PIN nuovo non è fatto di 6–16 cifre. (v0.3.0)
+    #[error("il PIN deve avere da 6 a 16 cifre")]
+    PinInvalid,
+
+    /// Il PIN nuovo è tra i più facili da indovinare (000000, 123456…). (v0.3.0)
+    #[error("il PIN è troppo semplice")]
+    PinTooSimple,
+
+    /// Si chiede di verificare un PIN, ma il blocco non è configurato. (v0.3.0)
+    #[error("il PIN non è impostato")]
+    PinNotSet,
+
+    #[error("il PIN non è corretto")]
+    PinWrong,
+
+    /// Troppi tentativi falliti: il prossimo è ammesso dopo un'attesa. (v0.3.0)
+    #[error("troppi tentativi: attendere prima di riprovare")]
+    PinThrottled,
+
+    /// Il calcolo o la lettura dell'impronta del PIN non sono riusciti. (v0.3.0)
+    #[error("impronta del PIN non calcolabile")]
+    PinHashFailed,
+
+    #[error("il tempo di inattività non è ammesso")]
+    IdleInvalid,
+
     #[error("errore di lettura del file: {0}")]
     Io(#[from] std::io::Error),
 
@@ -80,6 +106,13 @@ impl Error {
         "HASH_MISMATCH",
         "TAG_INVALID",
         "NOT_FOUND",
+        "PIN_INVALID",
+        "PIN_TOO_SIMPLE",
+        "PIN_NOT_SET",
+        "PIN_WRONG",
+        "PIN_THROTTLED",
+        "PIN_HASH_FAILED",
+        "IDLE_INVALID",
         "IO_ERROR",
         "DB_ERROR",
     ];
@@ -102,6 +135,13 @@ impl Error {
             Self::HashMismatch => "HASH_MISMATCH",
             Self::TagInvalid => "TAG_INVALID",
             Self::NotFound => "NOT_FOUND",
+            Self::PinInvalid => "PIN_INVALID",
+            Self::PinTooSimple => "PIN_TOO_SIMPLE",
+            Self::PinNotSet => "PIN_NOT_SET",
+            Self::PinWrong => "PIN_WRONG",
+            Self::PinThrottled => "PIN_THROTTLED",
+            Self::PinHashFailed => "PIN_HASH_FAILED",
+            Self::IdleInvalid => "IDLE_INVALID",
             Self::Io(_) => "IO_ERROR",
             Self::Sqlite(_) => "DB_ERROR",
         }
@@ -153,6 +193,13 @@ mod tests {
             Error::HashMismatch,
             Error::TagInvalid,
             Error::NotFound,
+            Error::PinInvalid,
+            Error::PinTooSimple,
+            Error::PinNotSet,
+            Error::PinWrong,
+            Error::PinThrottled,
+            Error::PinHashFailed,
+            Error::IdleInvalid,
             Error::Io(std::io::Error::other("prova")),
             Error::Sqlite(rusqlite::Error::InvalidQuery),
         ]

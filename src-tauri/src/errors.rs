@@ -15,6 +15,19 @@ impl CommandError {
     pub const DIALOG_FAILED: Self = Self::new("DIALOG_FAILED");
     pub const PICK_EXPIRED: Self = Self::new("PICK_EXPIRED");
     pub const LAUNCH_FAILED: Self = Self::new("LAUNCH_FAILED");
+    /// L'app è bloccata e il comando non serve a sbloccarla (v0.3.0).
+    pub const LOCKED: Self = Self::new("LOCKED");
+    /// Un prompt di sistema chiesto con la finestra in secondo piano (A.7.5). (v0.3.0)
+    pub const NOT_FOREGROUND: Self = Self::new("NOT_FOREGROUND");
+    pub const HELLO_NOT_ENABLED: Self = Self::new("HELLO_NOT_ENABLED");
+    pub const HELLO_NO_DEVICE: Self = Self::new("HELLO_NO_DEVICE");
+    pub const HELLO_NOT_CONFIGURED: Self = Self::new("HELLO_NOT_CONFIGURED");
+    pub const HELLO_DISABLED_BY_POLICY: Self = Self::new("HELLO_DISABLED_BY_POLICY");
+    pub const HELLO_BUSY: Self = Self::new("HELLO_BUSY");
+    pub const HELLO_RETRIES_EXHAUSTED: Self = Self::new("HELLO_RETRIES_EXHAUSTED");
+    /// Annullato dall'utente, o da una richiesta più recente: l'interfaccia non lo segnala.
+    pub const HELLO_CANCELED: Self = Self::new("HELLO_CANCELED");
+    pub const HELLO_FAILED: Self = Self::new("HELLO_FAILED");
 
     const fn new(code: &'static str) -> Self {
         Self { code }
@@ -31,6 +44,16 @@ pub const SHELL_CODES: &[&str] = &[
     CommandError::DIALOG_FAILED.code,
     CommandError::PICK_EXPIRED.code,
     CommandError::LAUNCH_FAILED.code,
+    CommandError::LOCKED.code,
+    CommandError::NOT_FOREGROUND.code,
+    CommandError::HELLO_NOT_ENABLED.code,
+    CommandError::HELLO_NO_DEVICE.code,
+    CommandError::HELLO_NOT_CONFIGURED.code,
+    CommandError::HELLO_DISABLED_BY_POLICY.code,
+    CommandError::HELLO_BUSY.code,
+    CommandError::HELLO_RETRIES_EXHAUSTED.code,
+    CommandError::HELLO_CANCELED.code,
+    CommandError::HELLO_FAILED.code,
 ];
 
 impl From<domain::Error> for CommandError {

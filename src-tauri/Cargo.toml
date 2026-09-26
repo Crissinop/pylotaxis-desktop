@@ -30,10 +30,26 @@ tauri-plugin-opener = "2.5.4"
 uuid = { version = "1.26.1", features = ["v7"] }
 
 [target.'cfg(windows)'.dependencies]
+# Windows Hello legato alla finestra, inattività di sistema e stato della sessione. È la
+# versione che Tauri usa già: nessuna seconda copia del crate, e lo stesso tipo HWND. (v0.3.0)
+windows = { version = "0.61.3", features = [
+    "Foundation",
+    "Security_Credentials_UI",
+    "Win32_Foundation",
+    "Win32_System_RemoteDesktop",
+    "Win32_System_SystemInformation",
+    "Win32_System_WinRT",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
+# Tipo delle operazioni asincrone di WinRT (attesa e annullamento del prompt di Hello).
+windows-future = "0.2.1"
 windows-native-keyring-store = "1.1.0"
 
 [dev-dependencies]
 serde_json = "1.0.151"
+tempfile = "3.27.0"
+# Runtime simulato di Tauri: i test del blocco passano dal gestore vero dei comandi (v0.3.0).
+tauri = { version = "2.11.6", features = ["test"] }
 
 [lints]
 workspace = true

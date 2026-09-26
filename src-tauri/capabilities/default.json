@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Finestra principale: solo i comandi che usa davvero (A.7.10). Nessun permesso dei plugin: dialog e opener si usano solo da Rust.",
+  "description": "Finestra principale: solo i comandi che usa davvero (A.7.10). Nessun permesso dei plugin: dialog e opener si usano solo da Rust. Dei permessi core, solo l'ascolto degli eventi, per sapere quando l'app si blocca (v0.3.0).",
   "windows": ["main"],
   "permissions": [
     "allow-app-info",
@@ -13,6 +13,17 @@
     "allow-app-create",
     "allow-app-update",
     "allow-app-delete",
-    "allow-app-launch"
+    "allow-app-launch",
+    "allow-lock-status",
+    "allow-lock-now",
+    "allow-unlock-pin",
+    "allow-unlock-hello",
+    "allow-hello-availability",
+    "allow-security-set-pin",
+    "allow-security-disable",
+    "allow-security-set-hello",
+    "allow-security-set-idle",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
   ]
 }

@@ -7,6 +7,7 @@ pub mod db;
 mod error;
 mod hex;
 pub mod launch;
+pub mod lock;
 pub mod registry;
 
 pub use db::{Database, DatabaseKey, KeyPlan, plan_key};
