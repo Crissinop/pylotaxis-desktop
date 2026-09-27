@@ -14,6 +14,8 @@ interface TileMenuProps {
   /** Id del pulsante che apre il menu: gli dà il nome. */
   labelledBy: string;
   items: TileMenuItem[];
+  /** Sta svanendo: inerte, non riceve più tasti né clic (v0.8.0). */
+  closing: boolean;
   /** `restoreFocus`: Esc riporta il fuoco al pulsante che ha aperto il menu. */
   onClose: (restoreFocus: boolean) => void;
 }
@@ -23,29 +25,33 @@ interface TileMenuProps {
  * e Fine spostano, Invio sceglie, Esc chiude e restituisce il fuoco, Tab esce (A.7.8). Va reso
  * come figlio diretto della tessera: un clic fuori da lei lo chiude.
  */
-export function TileMenu({ id, labelledBy, items, onClose }: TileMenuProps) {
+export function TileMenu({ id, labelledBy, items, closing, onClose }: TileMenuProps) {
   const list = useRef<HTMLUListElement>(null);
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    list.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')[active]?.focus();
-  }, [active]);
+    if (!closing) {
+      list.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')[active]?.focus();
+    }
+  }, [active, closing]);
 
   useEffect(() => {
+    if (closing) return undefined;
     const onPointer = (event: PointerEvent) => {
       const tile = list.current?.parentElement;
       if (tile && event.target instanceof Node && !tile.contains(event.target)) onClose(false);
     };
     document.addEventListener('pointerdown', onPointer);
     return () => document.removeEventListener('pointerdown', onPointer);
-  }, [onClose]);
+  }, [closing, onClose]);
 
   return (
     <ul
       ref={list}
       id={id}
-      className="tile-menu"
+      className={closing ? 'tile-menu tile-menu--closing' : 'tile-menu'}
       role="menu"
+      inert={closing}
       aria-labelledby={labelledBy}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {

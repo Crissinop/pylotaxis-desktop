@@ -1,8 +1,9 @@
-import { useCallback, useId, useRef, useState, type SyntheticEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
 import type { Category, Group, HealthStatus, RegisteredApp, Registry } from '../../lib/ipc';
+import { MENU_EXIT_MS, prefersReducedMotion } from '../../lib/motion';
 import { HealthDot } from '../health/HealthBadge';
 import { AppIcon, GroupIcon } from '../icons/AppIcon';
 import { countByApp } from '../secrets/grouping';
@@ -26,25 +27,43 @@ interface RegistryViewProps {
   onDeleteApp: (app: RegisteredApp) => void;
   onRenameCategory: (category: Category) => void;
   onDeleteCategory: (category: Category) => void;
-  onAddApp: () => void;
+  /** Dalla tessera "+" di una sezione: la categoria arriva già scelta (v0.8.0). */
+  onAddApp: (categoryId: string | null) => void;
   onAddCategory: () => void;
 }
 
-/** Stato del menu di una tessera: aperto, e come si chiude. */
+type MenuState = 'closed' | 'open' | 'closing';
+
+/**
+ * Stato del menu di una tessera. Alla chiusura resta montato per `MENU_EXIT_MS`, inerte,
+ * mentre svanisce: l'uscita si anima come l'entrata (v0.8.0).
+ */
 function useTileMenu() {
-  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<MenuState>('closed');
   const trigger = useRef<HTMLButtonElement>(null);
+  const timer = useRef<number | undefined>(undefined);
   const ids = { trigger: useId(), menu: useId() };
+  useEffect(() => () => window.clearTimeout(timer.current), []);
   const close = useCallback((restoreFocus: boolean) => {
-    setOpen(false);
+    setState((current) => (current === 'open' ? 'closing' : current));
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(
+      () => setState((current) => (current === 'closing' ? 'closed' : current)),
+      prefersReducedMotion() ? 0 : MENU_EXIT_MS,
+    );
     if (restoreFocus) trigger.current?.focus();
   }, []);
+  const show = () => {
+    window.clearTimeout(timer.current);
+    setState('open');
+  };
   // Tasto destro, tasto Menu e Maiusc+F10 aprono lo stesso menu del pulsante "⋯".
   const openFrom = (event: SyntheticEvent) => {
     event.preventDefault();
-    setOpen(true);
+    show();
   };
-  return { open, setOpen, trigger, ids, close, openFrom };
+  const toggle = () => (state === 'open' ? close(false) : show());
+  return { state, open: state === 'open', trigger, ids, close, openFrom, toggle };
 }
 
 function MoreIcon() {
@@ -76,15 +95,16 @@ function renderMore({ menu, moreLabel, items }: MoreProps) {
         aria-expanded={menu.open}
         aria-controls={menu.open ? menu.ids.menu : undefined}
         aria-label={moreLabel}
-        onClick={() => menu.setOpen((open) => !open)}
+        onClick={menu.toggle}
       >
         <MoreIcon />
       </button>
-      {menu.open && (
+      {menu.state !== 'closed' && (
         <TileMenu
           id={menu.ids.menu}
           labelledBy={menu.ids.trigger}
           items={items}
+          closing={menu.state === 'closing'}
           onClose={menu.close}
         />
       )}
@@ -200,6 +220,27 @@ function GroupTile({ group, apps, icons, onLaunch, onEdit, onDelete }: GroupTile
   );
 }
 
+/**
+ * Tessera "+" in fondo a una sezione (v0.8.0): aggiungere si fa dove si guarda, con la stessa
+ * forma delle tessere che crea, al posto dei pulsanti nella barra.
+ */
+function renderAddTile(label: string, hint: string, onAdd: () => void) {
+  return (
+    <li className="tile tile--add">
+      <button type="button" className="tile__launch" title={hint} onClick={onAdd}>
+        <span className="tile__icon">
+          <span className="add-icon" aria-hidden="true">
+            <svg viewBox="0 0 16 16">
+              <path d="M8 3v10M3 8h10" />
+            </svg>
+          </span>
+        </span>
+        <span className="tile__name">{label}</span>
+      </button>
+    </li>
+  );
+}
+
 export function RegistryView({
   registry,
   health,
@@ -229,7 +270,7 @@ export function RegistryView({
         </h1>
         <p className="empty-state__body">{t('registry.emptyBody')}</p>
         <div className="toolbar">
-          <button type="button" className="button button--primary" onClick={onAddApp}>
+          <button type="button" className="button button--primary" onClick={() => onAddApp(null)}>
             {t('actions.addFirstApp')}
           </button>
           <button type="button" className="button button--secondary" onClick={onAddCategory}>
@@ -248,29 +289,21 @@ export function RegistryView({
             <h2 id="groups-title" className="section__title">
               {t('groups.title')}
             </h2>
-            <div className="section__actions">
-              <button type="button" className="button button--ghost" onClick={onCreateGroup}>
-                {t('groups.new')}
-              </button>
-            </div>
           </header>
-          {registry.groups.length === 0 ? (
-            <p className="groups__empty">{t('groups.empty')}</p>
-          ) : (
-            <ul className="tile-grid">
-              {registry.groups.map((group) => (
-                <GroupTile
-                  key={group.id}
-                  group={group}
-                  apps={group.appIds.flatMap((id) => appsById.get(id) ?? [])}
-                  icons={icons}
-                  onLaunch={onLaunchGroup}
-                  onEdit={onEditGroup}
-                  onDelete={onDeleteGroup}
-                />
-              ))}
-            </ul>
-          )}
+          <ul className="tile-grid">
+            {registry.groups.map((group) => (
+              <GroupTile
+                key={group.id}
+                group={group}
+                apps={group.appIds.flatMap((id) => appsById.get(id) ?? [])}
+                icons={icons}
+                onLaunch={onLaunchGroup}
+                onEdit={onEditGroup}
+                onDelete={onDeleteGroup}
+              />
+            ))}
+            {renderAddTile(t('groups.new'), t('groups.addHint'), onCreateGroup)}
+          </ul>
         </section>
       )}
       {toSections(registry).map(({ category, apps }) => {
@@ -300,26 +333,35 @@ export function RegistryView({
                 </div>
               )}
             </header>
-            {apps.length > 0 && (
-              <ul className="tile-grid">
-                {apps.map((app) => (
-                  <AppTile
-                    key={app.id}
-                    app={app}
-                    icon={icons.get(app.id)}
-                    secretCount={secretCounts.get(app.id) ?? 0}
-                    health={health.get(app.id)}
-                    onLaunch={onLaunch}
-                    onSecrets={onSecrets}
-                    onEdit={onEditApp}
-                    onDelete={onDeleteApp}
-                  />
-                ))}
-              </ul>
-            )}
+            <ul className="tile-grid">
+              {apps.map((app) => (
+                <AppTile
+                  key={app.id}
+                  app={app}
+                  icon={icons.get(app.id)}
+                  secretCount={secretCounts.get(app.id) ?? 0}
+                  health={health.get(app.id)}
+                  onLaunch={onLaunch}
+                  onSecrets={onSecrets}
+                  onEdit={onEditApp}
+                  onDelete={onDeleteApp}
+                />
+              ))}
+              {renderAddTile(
+                t('actions.addApp'),
+                category ? t('registry.addHintIn', { name: category.name }) : t('registry.addHint'),
+                () => onAddApp(category?.id ?? null),
+              )}
+            </ul>
           </section>
         );
       })}
+      <button type="button" className="add-category" onClick={onAddCategory}>
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 3v10M3 8h10" />
+        </svg>
+        {t('actions.newCategory')}
+      </button>
     </div>
   );
 }

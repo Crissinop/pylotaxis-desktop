@@ -6,6 +6,8 @@ interface DialogProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** Più larga, per leggere testi lunghi (v0.8.0). */
+  wide?: boolean;
 }
 
 /**
@@ -13,7 +15,7 @@ interface DialogProps {
  * l'inerzia del resto della pagina (A.7.8). Si mostra montandola e si chiude smontandola,
  * nello stesso ciclo di render (A.7.7). (v0.2.0)
  */
-export function Dialog({ title, onClose, children }: DialogProps) {
+export function Dialog({ title, onClose, children, wide = false }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -36,7 +38,7 @@ export function Dialog({ title, onClose, children }: DialogProps) {
   return (
     <dialog
       ref={ref}
-      className="dialog"
+      className={wide ? 'dialog dialog--wide' : 'dialog'}
       aria-labelledby={titleId}
       onCancel={(event) => {
         // Esc chiude passando dallo stato di React, non dal solo DOM.

@@ -11,8 +11,6 @@
     "retry": "Riprova",
     "lock": "Blocca",
     "lockShortcut": "Blocca subito (Ctrl+L)",
-    "backToRegistry": "Torna al registro",
-    "settings": "Impostazioni",
     "close": "Chiudi"
   },
   "registry": {
@@ -30,7 +28,9 @@
     "secrets": "Segreti",
     "secretCount_one": "1 segreto",
     "secretCount_other": "{{count}} segreti",
-    "moreActions": "Altre azioni per {{name}}"
+    "moreActions": "Altre azioni per {{name}}",
+    "addHint": "Aggiungi un'app senza categoria",
+    "addHintIn": "Aggiungi un'app in {{name}}"
   },
   "form": {
     "createTitle": "Aggiungi un'app",
@@ -178,8 +178,21 @@
     "autostartTitle": "Avvio",
     "autostartLabel": "Avvia {{name}} all'accesso a Windows",
     "autostartHint": "Parte nella tray, senza finestra: la scorciatoia della palette è subito disponibile.",
-    "autostartOn": "Avvio con Windows attivato.",
-    "autostartOff": "Avvio con Windows disattivato."
+    "appearanceTitle": "Aspetto",
+    "themeLabel": "Tema",
+    "theme": {
+      "system": "Come Windows",
+      "light": "Chiaro",
+      "dark": "Scuro"
+    },
+    "accentLabel": "Colore d'accento",
+    "accent": {
+      "verdigris": "Verderame",
+      "lapis": "Lapislazzuli",
+      "porphyry": "Porfido",
+      "slate": "Ardesia"
+    },
+    "accentHint": "{{accent}}: colora fuoco, selezioni e interruttori. Il marchio resta verderame."
   },
   "keys": {
     "space": "Spazio"
@@ -229,7 +242,6 @@
   "groups": {
     "title": "Gruppi di avvio",
     "new": "Nuovo gruppo",
-    "empty": "Nessun gruppo: raccogli le app che apri insieme e avviale in un gesto.",
     "launch": "Avvia il gruppo {{name}}",
     "count_one": "{{count}} app",
     "count_other": "{{count}} app",
@@ -254,7 +266,8 @@
     "resultLaunched_other": "Aperte {{count}} app.",
     "resultChanged": "Questi eseguibili sono cambiati dall'ultima conferma: controllali e avviali uno per uno.",
     "confirmLaunch": "Conferma e avvia",
-    "moreActions": "Altre azioni per il gruppo {{name}}"
+    "moreActions": "Altre azioni per il gruppo {{name}}",
+    "addHint": "Raccogli le app che apri insieme e avviale in un gesto."
   },
   "errors": {
     "DB_WRONG_KEY": "La chiave non apre il database, oppure il file è danneggiato.",
@@ -318,5 +331,91 @@
   "footer": {
     "version": "Versione {{version}}",
     "versionUnavailable": "Versione non disponibile"
+  },
+  "nav": {
+    "label": "Sezioni",
+    "registry": "Home",
+    "settings": "Impostazioni",
+    "about": "Informazioni"
+  },
+  "legal": {
+    "termsTitle": "Termini d'uso",
+    "termsSummary": "{{name}} è fornito così com'è, per uso personale: i dati e le loro copie sono tua responsabilità.",
+    "termsOpen": "Leggi i termini",
+    "privacyTitle": "Privacy",
+    "privacySummary": "{{name}} non ha un server e non invia dati: tutto resta su questo computer.",
+    "privacyOpen": "Leggi l'informativa",
+    "updated": "Ultimo aggiornamento: {{date}}.",
+    "terms": {
+      "use": {
+        "title": "Uso",
+        "body": "{{name}} è uno strumento personale per catalogare, proteggere e avviare le tue app da un unico punto. Non sostituisce un gestore delle identità aziendale né un sistema di accesso federato."
+      },
+      "warranty": {
+        "title": "Nessuna garanzia",
+        "body": "{{name}} è fornito così com'è, senza garanzie di alcun tipo, nei limiti consentiti dalla legge. Chi lo sviluppa non risponde dei danni che derivano dal suo uso."
+      },
+      "data": {
+        "title": "I tuoi dati",
+        "body": "Il registro e i segreti restano su questo computer e sono tua responsabilità. Se dimentichi il PIN, oggi il registro non si sblocca: tieni una copia del file del registro."
+      },
+      "apps": {
+        "title": "Le app che avvii",
+        "body": "{{name}} avvia i programmi e i siti che scegli tu. Controlla che un eseguibile non sia cambiato dall'ultima conferma, ma non ne garantisce la sicurezza."
+      },
+      "security": {
+        "title": "Sicurezza",
+        "body": "Il blocco ferma chi usa questo computer, non i programmi già in esecuzione nella sessione. Proteggi l'accesso a Windows come faresti comunque."
+      },
+      "changes": {
+        "title": "Modifiche",
+        "body": "Questi termini possono cambiare con le versioni di {{name}}: vale quella mostrata nell'app che usi."
+      }
+    },
+    "privacy": {
+      "collected": {
+        "title": "Quali dati",
+        "body": "Le app che registri (nomi, percorsi, indirizzi, categorie, gruppi e icone), le impostazioni del blocco, di cui si conservano solo l'impronta del PIN e la sua lunghezza, e i segreti che salvi."
+      },
+      "where": {
+        "title": "Dove restano",
+        "body": "In un database cifrato con SQLCipher, nella cartella dei dati dell'app sotto %LOCALAPPDATA%. La chiave del database e i segreti stanno nel Gestore credenziali di Windows, solo su questo computer. Le preferenze dell'aspetto stanno nel profilo dell'app."
+      },
+      "outgoing": {
+        "title": "Che cosa esce da questo computer",
+        "body": "Nulla, salvo ciò che chiedi tu: si aprono le app e i siti che avvii e, se accendi il controllo dello stato di un'app web, parte una richiesta a quell'indirizzo al massimo una volta al minuto, senza credenziali né cookie. Nessuna telemetria, nessuna statistica, nessun controllo degli aggiornamenti."
+      },
+      "hello": {
+        "title": "Windows Hello",
+        "body": "La verifica la fa Windows: {{name}} ne riceve solo l'esito, mai dati biometrici."
+      },
+      "clipboard": {
+        "title": "Appunti",
+        "body": "Un segreto copiato resta fuori dalla cronologia e dalla sincronizzazione degli appunti di Windows e si cancella dopo 30 secondi, al blocco e alla chiusura."
+      },
+      "erase": {
+        "title": "Cancellare i dati",
+        "body": "Elimina le app e i segreti dall'interfaccia, poi disinstalla {{name}} e cancella la sua cartella in %LOCALAPPDATA%. La chiave del database resta nel Gestore credenziali di Windows finché non la elimini da lì."
+      },
+      "developer": {
+        "title": "Chi sviluppa l'app",
+        "body": "{{name}} è sviluppato da {{author}}, che non riceve alcun dato: presso di lui non c'è nulla da consultare o da cancellare."
+      }
+    }
+  },
+  "about": {
+    "tagline": "Il portale delle tue app: le cataloga, le protegge e le avvia da un unico punto, locali e web.",
+    "etymology": "Dal greco πύλη, porta, e τάξις, ordine: l'ordinamento delle porte.",
+    "version": "Versione",
+    "developer": "Sviluppo",
+    "developerValue": "{{author}}",
+    "stack": "Tecnologia",
+    "stackValue": "Tauri 2, React e Rust",
+    "platform": "Piattaforma",
+    "platformValue": "Windows x64",
+    "data": "Dati",
+    "dataValue": "Cifrati e solo su questo computer: nessun server, nessuna telemetria",
+    "fonts": "Caratteri",
+    "fontsValue": "Marcellus e Instrument Sans, SIL Open Font License 1.1"
   }
 }

@@ -11,8 +11,6 @@
     "retry": "Try again",
     "lock": "Lock",
     "lockShortcut": "Lock now (Ctrl+L)",
-    "backToRegistry": "Back to the registry",
-    "settings": "Settings",
     "close": "Close"
   },
   "registry": {
@@ -30,7 +28,9 @@
     "secrets": "Secrets",
     "secretCount_one": "1 secret",
     "secretCount_other": "{{count}} secrets",
-    "moreActions": "More actions for {{name}}"
+    "moreActions": "More actions for {{name}}",
+    "addHint": "Add an app without a category",
+    "addHintIn": "Add an app to {{name}}"
   },
   "form": {
     "createTitle": "Add an app",
@@ -178,8 +178,21 @@
     "autostartTitle": "Startup",
     "autostartLabel": "Start {{name}} when you sign in to Windows",
     "autostartHint": "It starts in the tray, without a window: the palette shortcut is ready right away.",
-    "autostartOn": "Start with Windows turned on.",
-    "autostartOff": "Start with Windows turned off."
+    "appearanceTitle": "Appearance",
+    "themeLabel": "Theme",
+    "theme": {
+      "system": "Like Windows",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "accentLabel": "Accent colour",
+    "accent": {
+      "verdigris": "Verdigris",
+      "lapis": "Lapis lazuli",
+      "porphyry": "Porphyry",
+      "slate": "Slate"
+    },
+    "accentHint": "{{accent}}: used for focus, selection and switches. The logo stays verdigris."
   },
   "keys": {
     "space": "Space"
@@ -229,7 +242,6 @@
   "groups": {
     "title": "Launch groups",
     "new": "New group",
-    "empty": "No groups yet: gather the apps you open together and launch them in one go.",
     "launch": "Launch the {{name}} group",
     "count_one": "{{count}} app",
     "count_other": "{{count}} apps",
@@ -254,7 +266,8 @@
     "resultLaunched_other": "Opened {{count}} apps.",
     "resultChanged": "These executables changed since they were last confirmed: check them and launch them one by one.",
     "confirmLaunch": "Confirm and launch",
-    "moreActions": "More actions for the {{name}} group"
+    "moreActions": "More actions for the {{name}} group",
+    "addHint": "Collect the apps you open together and launch them in one go."
   },
   "errors": {
     "DB_WRONG_KEY": "The key does not open the database, or the file is damaged.",
@@ -318,5 +331,91 @@
   "footer": {
     "version": "Version {{version}}",
     "versionUnavailable": "Version unavailable"
+  },
+  "nav": {
+    "label": "Sections",
+    "registry": "Home",
+    "settings": "Settings",
+    "about": "About"
+  },
+  "legal": {
+    "termsTitle": "Terms of use",
+    "termsSummary": "{{name}} is provided as is, for personal use: your data and its copies are your responsibility.",
+    "termsOpen": "Read the terms",
+    "privacyTitle": "Privacy",
+    "privacySummary": "{{name}} has no server and sends no data: everything stays on this computer.",
+    "privacyOpen": "Read the privacy notice",
+    "updated": "Last updated: {{date}}.",
+    "terms": {
+      "use": {
+        "title": "Use",
+        "body": "{{name}} is a personal tool to catalogue, protect and launch your apps from one place. It does not replace a corporate identity manager or a federated sign-in system."
+      },
+      "warranty": {
+        "title": "No warranty",
+        "body": "{{name}} is provided as is, without warranties of any kind, to the extent permitted by law. Its developer is not liable for damages arising from its use."
+      },
+      "data": {
+        "title": "Your data",
+        "body": "The registry and secrets stay on this computer and are your responsibility. If you forget the PIN, the registry currently cannot be unlocked: keep a copy of the registry file."
+      },
+      "apps": {
+        "title": "The apps you launch",
+        "body": "{{name}} launches the programs and sites you choose. It checks that an executable has not changed since your last confirmation, but does not guarantee that it is safe."
+      },
+      "security": {
+        "title": "Security",
+        "body": "The lock stops people using this computer, not programs already running in the session. Protect your Windows sign-in as you would anyway."
+      },
+      "changes": {
+        "title": "Changes",
+        "body": "These terms may change with new versions of {{name}}: the version shown in the app you use applies."
+      }
+    },
+    "privacy": {
+      "collected": {
+        "title": "What data",
+        "body": "The apps you register (names, paths, addresses, categories, groups and icons), the lock settings, of which only the PIN fingerprint and its length are kept, and the secrets you save."
+      },
+      "where": {
+        "title": "Where it stays",
+        "body": "In a database encrypted with SQLCipher, in the app's data folder under %LOCALAPPDATA%. The database key and the secrets are kept in Windows Credential Manager, on this computer only. Appearance preferences are kept in the app's profile."
+      },
+      "outgoing": {
+        "title": "What leaves this computer",
+        "body": "Nothing, except what you ask for: the apps and sites you launch are opened and, if you turn on the health check for a web app, a request is sent to that address at most once a minute, with no credentials or cookies. No telemetry, no statistics, no update checks."
+      },
+      "hello": {
+        "title": "Windows Hello",
+        "body": "Windows performs the check: {{name}} only receives the result, never biometric data."
+      },
+      "clipboard": {
+        "title": "Clipboard",
+        "body": "A copied secret is kept out of the Windows clipboard history and sync, and is cleared after 30 seconds, on lock and on exit."
+      },
+      "erase": {
+        "title": "Erasing your data",
+        "body": "Delete apps and secrets in the app, then uninstall {{name}} and delete its folder in %LOCALAPPDATA%. The database key stays in Windows Credential Manager until you remove it there."
+      },
+      "developer": {
+        "title": "Who develops the app",
+        "body": "{{name}} is developed by {{author}}, who receives no data: there is nothing held by the developer to access or erase."
+      }
+    }
+  },
+  "about": {
+    "tagline": "The portal for your apps: it catalogues, protects and launches them from one place, local and web.",
+    "etymology": "From the Greek πύλη, gate, and τάξις, order: the ordering of gates.",
+    "version": "Version",
+    "developer": "Developed by",
+    "developerValue": "{{author}}",
+    "stack": "Built with",
+    "stackValue": "Tauri 2, React and Rust",
+    "platform": "Platform",
+    "platformValue": "Windows x64",
+    "data": "Data",
+    "dataValue": "Encrypted and only on this computer: no server, no telemetry",
+    "fonts": "Typefaces",
+    "fontsValue": "Marcellus and Instrument Sans, SIL Open Font License 1.1"
   }
 }

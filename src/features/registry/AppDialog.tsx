@@ -21,6 +21,8 @@ import { formatTags, parseTags } from '../../lib/tags';
 interface AppDialogProps {
   /** Assente in inserimento, presente in modifica. */
   app?: RegisteredApp;
+  /** Categoria già scelta per un'app nuova, dalla tessera "+" della sezione (v0.8.0). */
+  initialCategoryId?: string | null;
   categories: Category[];
   onSubmit: (input: AppInput) => Promise<void>;
   onCancel: () => void;
@@ -45,6 +47,7 @@ const KIND_LABEL: Record<AppKind, string> = {
  */
 export function AppDialog({
   app,
+  initialCategoryId = null,
   categories,
   onSubmit,
   onCancel,
@@ -69,7 +72,7 @@ export function AppDialog({
   const [url, setUrl] = useState(app?.kind === 'web' ? app.target : '');
   const [uri, setUri] = useState(app?.kind === 'protocol' ? app.target : '');
   const [name, setName] = useState(app?.name ?? '');
-  const [categoryId, setCategoryId] = useState(app?.categoryId ?? '');
+  const [categoryId, setCategoryId] = useState(app?.categoryId ?? initialCategoryId ?? '');
   const [tagsText, setTagsText] = useState(formatTags(app?.tags ?? []));
   const [environment, setEnvironment] = useState<Environment | ''>(app?.environment ?? '');
   const [healthCheck, setHealthCheck] = useState(app?.healthCheck ?? false);

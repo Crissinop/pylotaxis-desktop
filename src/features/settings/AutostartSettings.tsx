@@ -5,10 +5,6 @@ import { APP_NAME } from '../../constants/app';
 import { errorCode } from '../../lib/errors';
 import { getAutostart, setAutostart } from '../../lib/ipc';
 
-interface AutostartSettingsProps {
-  onMessage: (message: string) => void;
-}
-
 /** Legge lo stato da Windows; funzione asincrona pura, l'effetto applica il risultato. */
 async function loadAutostart(): Promise<boolean | null> {
   try {
@@ -22,7 +18,7 @@ async function loadAutostart(): Promise<boolean | null> {
  * Avvio con Windows, spento per default (v0.6.0). All'accesso l'app parte nella tray, senza
  * finestra: la scorciatoia della palette è subito disponibile.
  */
-export function AutostartSettings({ onMessage }: AutostartSettingsProps) {
+export function AutostartSettings() {
   const { t } = useTranslation();
   const ids = { title: useId(), hint: useId() };
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -44,8 +40,8 @@ export function AutostartSettings({ onMessage }: AutostartSettingsProps) {
     setError(null);
     setAutostart(next)
       .then((now) => {
+        // Nessun messaggio a piè di pagina: lo stato lo mostra già la casella (v0.8.0).
         setEnabled(now);
-        onMessage(now ? t('settings.autostartOn') : t('settings.autostartOff'));
       })
       .catch((failure: unknown) => setError(errorCode(failure)))
       .finally(() => setBusy(false));

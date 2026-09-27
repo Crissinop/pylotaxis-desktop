@@ -7,8 +7,14 @@
  * v0.2.0: superficie delle finestre, bordo dei campi (3.49:1 e 3.43:1), colore delle azioni
  * distruttive (6.20:1 e 7.21:1) e pulsante primario (13.61:1 e 14.65:1). Il verderame resta
  * l'accento della chiave di volta e del fuoco: le azioni primarie usano basalto e marmo.
+ * v0.8.0: tema scelto (Come Windows, Chiaro, Scuro) e accento scelto per fuoco, selezioni e
+ * interruttori. Accenti misurati sul fondo e sulle superfici, minimo tra i due: verderame
+ * 3.65:1 e 7.18:1, lapislazzuli 5.32:1 e 6.81:1, porfido 5.51:1 e 6.99:1, ardesia 5.53:1 e
+ * 7.49:1 (chiaro e scuro), sopra il 3:1 degli elementi grafici.
  */
 :root {
+  /* Tema (v0.8.0): ogni colore si scrive una volta con light-dark(), e il tema lo decide
+     color-scheme. "light dark" segue Windows; data-theme lo fissa per scelta. */
   color-scheme: light dark;
 
   --palette-basalto: #1a1f28;
@@ -18,21 +24,24 @@
   --palette-verderame: #2e8577;
   --palette-verderame-chiaro: #5bbba9;
 
-  --color-bg: var(--palette-calce);
-  --color-text: var(--palette-basalto);
-  --color-text-muted: #5e6560;
-  --color-rule: #c9cec6;
-  --color-tile: var(--palette-basalto);
-  --color-accent: var(--palette-verderame);
-  --color-surface: #f3f5f1;
-  --color-border: #7d847f;
-  --color-danger: #9b2c2c;
-  /* Produzione (v0.6.0): bronzo, l'unico ambiente a colori; testo 6.12:1. */
-  --color-production: #7a4a1e;
-  --color-production-text: var(--palette-calce);
-  --color-primary-bg: var(--palette-basalto);
-  --color-primary-text: var(--palette-calce);
-  --color-backdrop: rgb(17 21 27 / 45%);
+  --color-bg: light-dark(var(--palette-calce), var(--palette-notte));
+  --color-text: light-dark(var(--palette-basalto), var(--palette-marmo));
+  --color-text-muted: light-dark(#5e6560, #9aa19c);
+  --color-rule: light-dark(#c9cec6, #2a303a);
+  --color-tile: light-dark(var(--palette-basalto), var(--palette-marmo));
+  --color-accent: light-dark(var(--palette-verderame), var(--palette-verderame-chiaro));
+  /* La chiave di volta del marchio resta verderame qualunque accento si scelga (A.2). */
+  --color-keystone: light-dark(var(--palette-verderame), var(--palette-verderame-chiaro));
+  --color-surface: light-dark(#f3f5f1, var(--palette-basalto));
+  --color-border: light-dark(#7d847f, #6b7470);
+  --color-danger: light-dark(#9b2c2c, #e58a7e);
+  /* Produzione (v0.6.0): bronzo, l'unico ambiente a colori; testo 6.12:1 in chiaro, 7.54:1
+     con il bronzo chiaro sul fondo notte. */
+  --color-production: light-dark(#7a4a1e, #d49b5c);
+  --color-production-text: light-dark(var(--palette-calce), var(--palette-notte));
+  --color-primary-bg: light-dark(var(--palette-basalto), var(--palette-marmo));
+  --color-primary-text: light-dark(var(--palette-calce), var(--palette-notte));
+  --color-backdrop: light-dark(rgb(17 21 27 / 45%), rgb(0 0 0 / 55%));
 
   --font-display: 'Marcellus', Georgia, 'Times New Roman', serif;
   --font-body: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
@@ -61,22 +70,23 @@
   --color-tone-5: #414a45;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: var(--palette-notte);
-    --color-text: var(--palette-marmo);
-    --color-text-muted: #9aa19c;
-    --color-rule: #2a303a;
-    --color-tile: var(--palette-marmo);
-    --color-accent: var(--palette-verderame-chiaro);
-    --color-surface: var(--palette-basalto);
-    --color-border: #6b7470;
-    --color-danger: #e58a7e;
-    /* Bronzo chiaro sul fondo notte; testo 7.54:1 (v0.6.0). */
-    --color-production: #d49b5c;
-    --color-production-text: var(--palette-notte);
-    --color-primary-bg: var(--palette-marmo);
-    --color-primary-text: var(--palette-notte);
-    --color-backdrop: rgb(0 0 0 / 55%);
-  }
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* Accenti scelti (v0.8.0). Il verderame è il predefinito e non ha bisogno di una regola. */
+:root[data-accent='lapis'] {
+  --color-accent: light-dark(#2f5f9e, #86a8dd);
+}
+
+:root[data-accent='porphyry'] {
+  --color-accent: light-dark(#7e4a78, #c79bc1);
+}
+
+:root[data-accent='slate'] {
+  --color-accent: light-dark(#4f5d6e, #a3b0bf);
 }

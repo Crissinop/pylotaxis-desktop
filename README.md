@@ -82,7 +82,7 @@ esecuzione nella tua sessione di Windows, che può leggere la chiave dal Credent
 stesso limite vale per i segreti (v0.4.0).
 
 Se dimentichi il PIN non c'è un recupero: il registro è intatto ma non si sblocca. Il backup e il
-recupero arrivano con la v0.8.0.
+recupero arrivano con la v0.9.0.
 
 Da provare a mano sulla macchina, perché dipende da Windows e non da un test automatico: il prompt di
 Windows Hello davanti alla finestra dell'app, Win+L e il ritorno dalla sospensione (l'app deve
@@ -132,6 +132,11 @@ Dalla v0.7.0 il registro è una griglia di tessere: si riconosce un'app dall'ico
 | Azioni       | Segreti, Modifica ed Elimina nel menu della tessera: pulsante "⋯", tasto destro, tasto Menu o Maiusc+F10. Frecce per scegliere, Esc per chiudere                                                                                   |
 | Impostazioni | Una scheda per sezione, affiancate quando la finestra è larga                                                                                                                                                                      |
 | Movimento    | Dissolvenze brevi su campi, finestre, cambi di vista e palette. Con "Riduci animazioni" di Windows non si muove nulla                                                                                                              |
+| Barra        | Dalla v0.8.0: Home, Impostazioni e Informazioni; Blocca a destra, accanto ai pulsanti di finestra                                                                                                                                  |
+| Aggiungere   | Dalla v0.8.0 la tessera "+" in fondo a ogni sezione aggiunge un gruppo o un'app, con la categoria già scelta; "Nuova categoria" sta in fondo al registro                                                                           |
+| Aspetto      | Tema Come Windows, Chiaro o Scuro e quattro accenti, nelle impostazioni. Il marchio resta verderame                                                                                                                                |
+| Tendine      | Si aprono e si chiudono con una dissolvenza (menu a tendina personalizzabili di Chromium); le finestre modali sfocano lo sfondo                                                                                                    |
+| Note legali  | Termini d'uso e informativa sulla privacy nelle impostazioni e nella pagina Informazioni                                                                                                                                           |
 
 La migrazione 0006 aggiunge icone e lunghezza del PIN: dopo il primo avvio della v0.7.0 le build
 precedenti non aprono più il registro. Prima dell'aggiornamento conviene copiare `registry.db`.

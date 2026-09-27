@@ -1,6 +1,8 @@
 /** Durate e curve delle animazioni fatte da codice, le stesse del foglio di stile (A.7.7). */
 export const DIALOG_EXIT_MS = 150;
 export const PALETTE_ENTER_MS = 120;
+/** Uscita dei menu delle tessere: la stessa durata dell'entrata (v0.8.0). */
+export const MENU_EXIT_MS = 120;
 export const EASE_OUT = 'cubic-bezier(0.2, 0.7, 0.2, 1)';
 /**
  * Sotto questa età una finestra non si anima in uscita: in sviluppo StrictMode la smonta e la

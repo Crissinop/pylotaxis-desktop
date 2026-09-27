@@ -4,3 +4,6 @@
  * Rust. Non va mai scritto nelle traduzioni (A.7.9). (v0.1.0)
  */
 export const APP_NAME = 'Pylotaxis';
+
+/** Chi sviluppa l'app, come nell'identificatore e nel repository (v0.8.0). */
+export const APP_AUTHOR = 'Crissinop';

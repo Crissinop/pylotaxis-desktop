@@ -52,8 +52,10 @@ select {
 
 .brand {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  margin-right: var(--space-6);
 }
 
 .wordmark {
@@ -198,6 +200,8 @@ select {
 
 .dialog::backdrop {
   background: var(--color-backdrop);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .dialog__title {
@@ -347,16 +351,25 @@ select {
   letter-spacing: 0.4em;
   text-align: center;
   text-indent: 0.4em;
+  /* Nessun cursore: in un campo centrato si disegnerebbe sopra il segnaposto. Il fuoco lo
+     mostrano bordo e alone, come sui telefoni. */
+  caret-color: transparent;
   transition:
     border-color 160ms var(--ease-out),
     box-shadow 160ms var(--ease-out);
 }
 
+/* Campo vuoto (v0.8.0): niente spaziatura né rientro, così "PIN" sta al centro esatto; il
+   ::placeholder non può annullare il rientro del campo, lo stato :placeholder-shown sì. */
+.lock__pin:placeholder-shown {
+  letter-spacing: 0;
+  text-indent: 0;
+}
+
 .lock__pin::placeholder {
   color: var(--color-text-muted);
   font-size: 15px;
-  letter-spacing: 0.08em;
-  text-indent: 0;
+  letter-spacing: 0;
 }
 
 .lock__pin:focus {
@@ -389,8 +402,8 @@ select {
 /* Impostazioni: ogni sezione è una scheda; le schede riempiono la larghezza in una griglia
    che si adatta alla finestra, invece di una sola colonna stretta (v0.7.0). */
 .settings {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
   border: 1px solid var(--color-rule);
@@ -442,10 +455,12 @@ select {
   min-width: 24ch;
 }
 
+/* Le azioni stanno sul fondo della scheda: nelle schede alte quanto la riga si allineano. */
 .settings__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  margin-top: auto;
 }
 
 .settings__error {
@@ -554,7 +569,6 @@ select {
 .window-controls {
   display: flex;
   align-self: stretch;
-  margin-left: auto;
 }
 
 .window-controls__button {
@@ -589,10 +603,11 @@ select {
   color: var(--color-primary-text);
 }
 
+/* Sei schede della stessa altezza per riga: 3×2, 2×3 o una colonna (v0.8.0). */
 .settings-page {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+  align-items: stretch;
   gap: var(--space-6);
   max-width: 1320px;
   margin: 0 auto;
@@ -836,7 +851,7 @@ select {
 }
 
 .mark__keystone {
-  fill: var(--color-accent);
+  fill: var(--color-keystone);
 }
 
 /* Tessere del registro (v0.7.0): icona e nome, le azioni nel menu. */
@@ -1139,6 +1154,8 @@ select {
   inset: 0;
   z-index: 999;
   background: var(--color-backdrop);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   pointer-events: none;
   animation: fade-out 150ms ease-in forwards;
 }
@@ -1212,4 +1229,401 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
+}
+
+/* Barra del titolo (v0.8.0): marchio, sezioni, poi a destra Blocca e i pulsanti di finestra. */
+.nav {
+  display: flex;
+  align-self: stretch;
+  gap: var(--space-1);
+}
+
+.nav__item {
+  position: relative;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 120ms var(--ease-out);
+}
+
+.nav__item:hover {
+  color: var(--color-text);
+}
+
+.nav__item[aria-current='page'] {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* Sezione attiva: un filetto sotto la voce, che entra scalando da sinistra. */
+.nav__item::after {
+  position: absolute;
+  right: var(--space-3);
+  bottom: 0;
+  left: var(--space-3);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-accent);
+  content: '';
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms var(--ease-out);
+}
+
+.nav__item[aria-current='page']::after {
+  transform: scaleX(1);
+}
+
+.shell__header-end {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.header-lock {
+  gap: var(--space-2);
+}
+
+.header-lock svg,
+.add-category svg,
+.add-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+}
+
+/* Tessera "+": tratteggiata, della stessa forma delle tessere che crea (v0.8.0). */
+.add-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 12px;
+  color: var(--color-text-muted);
+  transition:
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.add-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tile--add .tile__name {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.tile--add .tile__launch:hover .add-icon,
+.tile--add .tile__launch:focus-visible .add-icon {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.add-category {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  border: 1.5px dashed var(--color-rule);
+  border-radius: var(--radius-dialog);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.add-category:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+/* Uscita del menu delle tessere: resta montato e inerte mentre svanisce (v0.8.0). */
+.tile-menu--closing {
+  animation: menu-out 120ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes menu-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Aspetto (v0.8.0): tema a segmenti e accento a campioni, entrambi gruppi di radio veri. */
+.segmented {
+  display: grid;
+  /* Ogni segmento largo almeno quanto la sua etichetta, il resto diviso in parti uguali:
+     "Come Windows" non va a capo. */
+  grid-template-columns: repeat(3, minmax(max-content, 1fr));
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+}
+
+.segmented__option {
+  position: relative;
+  display: grid;
+}
+
+.segmented__option input,
+.swatch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented__option span {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  white-space: nowrap;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  transition:
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.segmented__option input:checked + span {
+  background: var(--color-primary-bg);
+  color: var(--color-primary-text);
+}
+
+.segmented__option input:focus-visible + span,
+.swatch input:focus-visible + .swatch__color {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.swatches {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.swatch {
+  position: relative;
+  display: grid;
+}
+
+.swatch__color {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--color-surface);
+  transition: box-shadow 160ms var(--ease-out);
+}
+
+.swatch input:checked + .swatch__color {
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 0 0 5px var(--color-text);
+}
+
+.swatch__color--verdigris {
+  background: light-dark(#2e8577, #5bbba9);
+}
+
+.swatch__color--lapis {
+  background: light-dark(#2f5f9e, #86a8dd);
+}
+
+.swatch__color--porphyry {
+  background: light-dark(#7e4a78, #c79bc1);
+}
+
+.swatch__color--slate {
+  background: light-dark(#4f5d6e, #a3b0bf);
+}
+
+/* Menu a tendina (v0.8.0): i <select> personalizzabili di Chromium 135+ si animano in entrata
+   e in uscita mantenendo tastiera e accessibilità del controllo nativo. Dove mancano restano i
+   menu di sistema, senza animazione. */
+@supports (appearance: base-select) {
+  select,
+  select::picker(select) {
+    appearance: base-select;
+  }
+
+  select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    cursor: pointer;
+  }
+
+  select::picker-icon {
+    color: var(--color-text-muted);
+    transition: rotate 180ms var(--ease-out);
+  }
+
+  select:open::picker-icon {
+    rotate: 180deg;
+  }
+
+  select::picker(select) {
+    margin-block: 4px;
+    padding: var(--space-1);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+    color: var(--color-text);
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+    transform-origin: top center;
+    transition:
+      opacity 140ms var(--ease-out),
+      transform 140ms var(--ease-out),
+      overlay 140ms allow-discrete,
+      display 140ms allow-discrete;
+  }
+
+  select:open::picker(select) {
+    opacity: 1;
+    transform: none;
+  }
+
+  @starting-style {
+    select:open::picker(select) {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+
+  select option {
+    padding: var(--space-2) var(--space-3);
+    border-radius: 4px;
+  }
+
+  select option:hover,
+  select option:focus-visible {
+    background: var(--color-bg);
+    outline: none;
+  }
+
+  select option:checked {
+    font-weight: 600;
+  }
+
+  select option::checkmark {
+    color: var(--color-accent);
+  }
+}
+
+/* Testi legali (v0.8.0): una colonna da leggere, che scorre dentro la finestra. */
+.dialog--wide {
+  width: min(720px, calc(100vw - 48px));
+}
+
+.legal {
+  display: grid;
+  gap: var(--space-4);
+  max-height: min(60vh, 560px);
+  margin-bottom: var(--space-6);
+  padding-right: var(--space-2);
+  overflow-y: auto;
+}
+
+.legal__heading {
+  margin: 0 0 var(--space-1);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.legal__text {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.legal__updated {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* Informazioni (v0.8.0): una scheda sola, al centro. */
+.about {
+  display: grid;
+  gap: var(--space-6);
+  width: min(640px, 100%);
+  margin: var(--space-6) auto;
+  padding: var(--space-8);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-dialog);
+  background: var(--color-surface);
+}
+
+.about__header {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.about__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.about__tagline,
+.about__etymology {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.about__etymology {
+  font-style: italic;
+}
+
+.about__facts {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid var(--color-rule);
+}
+
+.about__fact {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.about__fact dt {
+  color: var(--color-text-muted);
+}
+
+.about__fact dd {
+  margin: 0;
+}
+
+.about__links {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
 }

@@ -17,7 +17,10 @@ import { GroupLaunchDialog } from './features/groups/GroupLaunchDialog';
 import { GroupResultDialog } from './features/groups/GroupResultDialog';
 import { useHealth } from './features/health/useHealth';
 import { useAppIcons } from './features/icons/useAppIcons';
+import { AboutView } from './features/about/AboutView';
+import { AppearanceSettings } from './features/settings/AppearanceSettings';
 import { AutostartSettings } from './features/settings/AutostartSettings';
+import { PrivacySettings, TermsSettings } from './features/settings/LegalSettings';
 import { ShortcutSettings } from './features/settings/ShortcutSettings';
 import { errorCode } from './lib/errors';
 import {
@@ -58,12 +61,15 @@ type LockView =
   | { status: 'ready'; lock: LockStatus; receivedAt: number }
   | { status: 'failed'; code: string };
 
-type View = 'registry' | 'security';
+/** Sezioni della barra in alto, nell'ordine in cui compaiono: prima la Home (v0.8.0). */
+type View = 'registry' | 'settings' | 'about';
+const NAV_ITEMS: readonly View[] = ['registry', 'settings', 'about'];
 
 /** Una sola finestra aperta alla volta, descritta da dati e non da flag sparsi. */
 type Modal =
   | { type: 'none' }
-  | { type: 'createApp' }
+  /** Dalla tessera "+" di una categoria, con la categoria già scelta (v0.8.0). */
+  | { type: 'createApp'; categoryId: string | null }
   | { type: 'editApp'; app: RegisteredApp }
   | { type: 'deleteApp'; app: RegisteredApp }
   | { type: 'changedApp'; app: RegisteredApp }
@@ -309,11 +315,6 @@ export default function App() {
 
   const categories = registry.status === 'ready' ? registry.registry.categories : [];
   const apps = registry.status === 'ready' ? registry.registry.apps : [];
-  // Con il registro vuoto le azioni stanno solo al centro: un'azione primaria per area (A.8).
-  const isEmpty =
-    registry.status === 'ready' &&
-    registry.registry.apps.length === 0 &&
-    registry.registry.categories.length === 0;
   const startupFailure =
     lockView.status === 'failed'
       ? lockView.code
@@ -331,46 +332,39 @@ export default function App() {
           <span className="wordmark">{APP_NAME}</span>
         </div>
         {ready && !locked && startupFailure === null && (
-          <div className="toolbar">
-            {ready.pinSet && (
+          <nav className="nav" aria-label={t('nav.label')}>
+            {NAV_ITEMS.map((item) => (
               <button
+                key={item}
                 type="button"
-                className="button button--ghost"
-                onClick={lock}
-                aria-keyshortcuts="Control+L"
-                title={t('actions.lockShortcut')}
+                className="nav__item"
+                aria-current={view === item ? 'page' : undefined}
+                onClick={() => setView(item)}
               >
-                {t('actions.lock')}
+                {t(`nav.${item}`)}
               </button>
-            )}
+            ))}
+          </nav>
+        )}
+        {/* Blocca sta a destra, prima dei pulsanti di finestra: un'azione, non una sezione. */}
+        <div className="shell__header-end">
+          {ready && !locked && startupFailure === null && ready.pinSet && (
             <button
               type="button"
-              className="button button--ghost"
-              onClick={() => setView(view === 'security' ? 'registry' : 'security')}
+              className="button button--ghost header-lock"
+              onClick={lock}
+              aria-keyshortcuts="Control+L"
+              title={t('actions.lockShortcut')}
             >
-              {view === 'security' ? t('actions.backToRegistry') : t('actions.settings')}
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+              </svg>
+              {t('actions.lock')}
             </button>
-            {view === 'registry' && registry.status === 'ready' && !isEmpty && (
-              <>
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  onClick={() => setModal({ type: 'createCategory' })}
-                >
-                  {t('actions.newCategory')}
-                </button>
-                <button
-                  type="button"
-                  className="button button--primary"
-                  onClick={() => setModal({ type: 'createApp' })}
-                >
-                  {t('actions.addApp')}
-                </button>
-              </>
-            )}
-          </div>
-        )}
-        <WindowControls />
+          )}
+          <WindowControls />
+        </div>
       </header>
 
       {/* La chiave rimonta il contenuto a ogni cambio di vista: l'entrata la anima il CSS. (v0.7.0) */}
@@ -401,9 +395,11 @@ export default function App() {
             }}
           />
         )}
-        {startupFailure === null && ready && !locked && view === 'security' && (
+        {startupFailure === null && ready && !locked && view === 'settings' && (
           <div className="settings-page">
             <h1 className="settings-page__title">{t('settings.title')}</h1>
+            {/* Sei schede: si dispongono 3×2, 2×3 o in colonna, sempre simmetriche (v0.8.0). */}
+            <AppearanceSettings />
             <SecurityView
               status={ready}
               onStatus={(next, text) => {
@@ -412,8 +408,13 @@ export default function App() {
               }}
             />
             <ShortcutSettings onMessage={setMessage} />
-            <AutostartSettings onMessage={setMessage} />
+            <AutostartSettings />
+            <TermsSettings />
+            <PrivacySettings />
           </div>
+        )}
+        {startupFailure === null && ready && !locked && view === 'about' && (
+          <AboutView version={version} />
         )}
         {startupFailure === null &&
           !locked &&
@@ -433,7 +434,7 @@ export default function App() {
               onDeleteApp={(app) => setModal({ type: 'deleteApp', app })}
               onRenameCategory={(category) => setModal({ type: 'renameCategory', category })}
               onDeleteCategory={(category) => setModal({ type: 'deleteCategory', category })}
-              onAddApp={() => setModal({ type: 'createApp' })}
+              onAddApp={(categoryId) => setModal({ type: 'createApp', categoryId })}
               onAddCategory={() => setModal({ type: 'createCategory' })}
             />
           )}
@@ -455,6 +456,7 @@ export default function App() {
       {(modal.type === 'createApp' || modal.type === 'editApp') && (
         <AppDialog
           app={modal.type === 'editApp' ? modal.app : undefined}
+          initialCategoryId={modal.type === 'createApp' ? modal.categoryId : null}
           categories={categories}
           icon={modal.type === 'editApp' ? icons.get(modal.app.id) : undefined}
           onIconChanged={() => {
