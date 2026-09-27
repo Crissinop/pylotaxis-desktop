@@ -81,6 +81,28 @@ pub enum Error {
     #[error("il tempo di inattività non è ammesso")]
     IdleInvalid,
 
+    /// Etichetta di un segreto vuota, troppo lunga o con caratteri di controllo. (v0.4.0)
+    #[error("etichetta del segreto non valida")]
+    SecretLabelInvalid,
+
+    #[error("etichetta già usata per un altro segreto di questa app")]
+    SecretLabelDuplicate,
+
+    #[error("nome utente non valido")]
+    SecretUsernameInvalid,
+
+    /// Valore vuoto o con il carattere NUL. (v0.4.0)
+    #[error("valore del segreto non valido")]
+    SecretValueInvalid,
+
+    /// Oltre i 2560 byte che il Credential Manager accetta. (v0.4.0)
+    #[error("valore del segreto troppo lungo")]
+    SecretTooLong,
+
+    /// La scorciatoia non è tra quelle dell'elenco (v0.5.0).
+    #[error("scorciatoia non ammessa")]
+    ShortcutInvalid,
+
     #[error("errore di lettura del file: {0}")]
     Io(#[from] std::io::Error),
 
@@ -113,6 +135,12 @@ impl Error {
         "PIN_THROTTLED",
         "PIN_HASH_FAILED",
         "IDLE_INVALID",
+        "SECRET_LABEL_INVALID",
+        "SECRET_LABEL_DUPLICATE",
+        "SECRET_USERNAME_INVALID",
+        "SECRET_VALUE_INVALID",
+        "SECRET_TOO_LONG",
+        "SHORTCUT_INVALID",
         "IO_ERROR",
         "DB_ERROR",
     ];
@@ -142,6 +170,12 @@ impl Error {
             Self::PinThrottled => "PIN_THROTTLED",
             Self::PinHashFailed => "PIN_HASH_FAILED",
             Self::IdleInvalid => "IDLE_INVALID",
+            Self::SecretLabelInvalid => "SECRET_LABEL_INVALID",
+            Self::SecretLabelDuplicate => "SECRET_LABEL_DUPLICATE",
+            Self::SecretUsernameInvalid => "SECRET_USERNAME_INVALID",
+            Self::SecretValueInvalid => "SECRET_VALUE_INVALID",
+            Self::SecretTooLong => "SECRET_TOO_LONG",
+            Self::ShortcutInvalid => "SHORTCUT_INVALID",
             Self::Io(_) => "IO_ERROR",
             Self::Sqlite(_) => "DB_ERROR",
         }
@@ -200,6 +234,12 @@ mod tests {
             Error::PinThrottled,
             Error::PinHashFailed,
             Error::IdleInvalid,
+            Error::SecretLabelInvalid,
+            Error::SecretLabelDuplicate,
+            Error::SecretUsernameInvalid,
+            Error::SecretValueInvalid,
+            Error::SecretTooLong,
+            Error::ShortcutInvalid,
             Error::Io(std::io::Error::other("prova")),
             Error::Sqlite(rusqlite::Error::InvalidQuery),
         ]

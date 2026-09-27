@@ -25,4 +25,15 @@ pub const APP_COMMANDS: &[&str] = &[
     "security_disable",
     "security_set_hello",
     "security_set_idle",
+    "secret_create",
+    "secret_update",
+    "secret_replace",
+    "secret_delete",
+    "secret_copy",
+    // Rapidità (v0.5.0): scorciatoia, tray, palette.
+    "shortcut_status",
+    "shortcut_set",
+    "tray_setup",
+    "main_window_show",
+    "palette_ready",
 ];

@@ -3,12 +3,16 @@ import { useTranslation } from 'react-i18next';
 
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Mark } from './components/Mark';
+import { WindowControls } from './components/WindowControls';
 import { NameDialog } from './components/NameDialog';
 import { APP_NAME } from './constants/app';
 import { LockScreen } from './features/lock/LockScreen';
 import { AppDialog } from './features/registry/AppDialog';
 import { RegistryView } from './features/registry/RegistryView';
+import { secretsOf } from './features/secrets/grouping';
+import { SecretsDialog } from './features/secrets/SecretsDialog';
 import { SecurityView } from './features/security/SecurityView';
+import { ShortcutSettings } from './features/settings/ShortcutSettings';
 import { errorCode } from './lib/errors';
 import {
   createApp,
@@ -22,6 +26,7 @@ import {
   lockNow,
   onLockChanged,
   renameCategory,
+  setupTray,
   updateApp,
   type Category,
   type LockStatus,
@@ -49,6 +54,8 @@ type Modal =
   | { type: 'editApp'; app: RegisteredApp }
   | { type: 'deleteApp'; app: RegisteredApp }
   | { type: 'changedApp'; app: RegisteredApp }
+  /** Per id: dopo ogni modifica il registro si rilegge, e la finestra ne mostra i dati nuovi. */
+  | { type: 'secrets'; appId: string }
   | { type: 'createCategory' }
   | { type: 'renameCategory'; category: Category }
   | { type: 'deleteCategory'; category: Category };
@@ -154,6 +161,15 @@ export default function App() {
     void loadStartup().then((next) => {
       if (active) applyStartup(next);
     });
+    // La tray è accessoria (A.7.5): senza, la finestra resta raggiungibile riavviando l'app,
+    // che per l'istanza singola porta davanti quella già aperta. (v0.5.0)
+    setupTray({
+      tooltip: APP_NAME,
+      open: t('tray.open'),
+      palette: t('tray.palette'),
+      lock: t('tray.lock'),
+      quit: t('tray.quit'),
+    }).catch(() => undefined);
     // La versione è accessoria: se non arriva, il resto funziona lo stesso (A.7.5).
     getAppInfo()
       .then((info) => active && setVersion(info.version))
@@ -161,7 +177,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [applyStartup]);
+  }, [applyStartup, t]);
 
   useEffect(() => {
     // Blocco deciso da Rust (inattività, sessione di Windows): arriva come evento. Se
@@ -232,7 +248,9 @@ export default function App() {
 
   return (
     <div className="shell">
-      <header className="shell__header">
+      {/* Barra del titolo propria: tutta l'intestazione trascina la finestra ("deep"); i
+          pulsanti, per Tauri, non trascinano. Il doppio clic ingrandisce. (v0.5.0) */}
+      <header className="shell__header" data-tauri-drag-region="deep">
         <div className="brand">
           <Mark size={36} />
           <span className="wordmark">{APP_NAME}</span>
@@ -255,7 +273,7 @@ export default function App() {
               className="button button--ghost"
               onClick={() => setView(view === 'security' ? 'registry' : 'security')}
             >
-              {view === 'security' ? t('actions.backToRegistry') : t('actions.security')}
+              {view === 'security' ? t('actions.backToRegistry') : t('actions.settings')}
             </button>
             {view === 'registry' && registry.status === 'ready' && !isEmpty && (
               <>
@@ -277,6 +295,7 @@ export default function App() {
             )}
           </div>
         )}
+        <WindowControls />
       </header>
 
       <main className="shell__main">
@@ -307,13 +326,17 @@ export default function App() {
           />
         )}
         {startupFailure === null && ready && !locked && view === 'security' && (
-          <SecurityView
-            status={ready}
-            onStatus={(next, text) => {
-              applyLock(next);
-              setMessage(text);
-            }}
-          />
+          <div className="settings-page">
+            <h1 className="settings-page__title">{t('settings.title')}</h1>
+            <SecurityView
+              status={ready}
+              onStatus={(next, text) => {
+                applyLock(next);
+                setMessage(text);
+              }}
+            />
+            <ShortcutSettings onMessage={setMessage} />
+          </div>
         )}
         {startupFailure === null &&
           !locked &&
@@ -322,6 +345,7 @@ export default function App() {
             <RegistryView
               registry={registry.registry}
               onLaunch={(app) => launch(app, false)}
+              onSecrets={(app) => setModal({ type: 'secrets', appId: app.id })}
               onEditApp={(app) => setModal({ type: 'editApp', app })}
               onDeleteApp={(app) => setModal({ type: 'deleteApp', app })}
               onRenameCategory={(category) => setModal({ type: 'renameCategory', category })}
@@ -370,6 +394,27 @@ export default function App() {
           }
         />
       )}
+      {modal.type === 'secrets' &&
+        registry.status === 'ready' &&
+        (() => {
+          const app = registry.registry.apps.find((candidate) => candidate.id === modal.appId);
+          return app ? (
+            <SecretsDialog
+              app={app}
+              secrets={secretsOf(registry.registry.secrets, app.id)}
+              onChanged={(text) => {
+                setMessage(text);
+                void reload();
+              }}
+              onMessage={setMessage}
+              onLaunch={(target) => {
+                setModal(NO_MODAL);
+                launch(target, false);
+              }}
+              onClose={() => setModal(NO_MODAL)}
+            />
+          ) : null;
+        })()}
       {modal.type === 'changedApp' && (
         <ConfirmDialog
           title={t('confirm.changedTitle', { name: modal.app.name })}

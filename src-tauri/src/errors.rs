@@ -28,6 +28,14 @@ impl CommandError {
     /// Annullato dall'utente, o da una richiesta più recente: l'interfaccia non lo segnala.
     pub const HELLO_CANCELED: Self = Self::new("HELLO_CANCELED");
     pub const HELLO_FAILED: Self = Self::new("HELLO_FAILED");
+    /// Il registro conosce il segreto, ma il Credential Manager non ha il valore (v0.4.0).
+    pub const SECRET_MISSING: Self = Self::new("SECRET_MISSING");
+    /// Gli appunti non si aprono (li tiene un'altra app) o non accettano i dati (v0.4.0).
+    pub const CLIPBOARD_UNAVAILABLE: Self = Self::new("CLIPBOARD_UNAVAILABLE");
+    /// Windows non concede la scorciatoia: la usa già un'altra app (v0.5.0).
+    pub const SHORTCUT_TAKEN: Self = Self::new("SHORTCUT_TAKEN");
+    /// L'icona nella tray non si crea: area di notifica non disponibile (v0.5.0).
+    pub const TRAY_UNAVAILABLE: Self = Self::new("TRAY_UNAVAILABLE");
 
     const fn new(code: &'static str) -> Self {
         Self { code }
@@ -54,6 +62,10 @@ pub const SHELL_CODES: &[&str] = &[
     CommandError::HELLO_RETRIES_EXHAUSTED.code,
     CommandError::HELLO_CANCELED.code,
     CommandError::HELLO_FAILED.code,
+    CommandError::SECRET_MISSING.code,
+    CommandError::CLIPBOARD_UNAVAILABLE.code,
+    CommandError::SHORTCUT_TAKEN.code,
+    CommandError::TRAY_UNAVAILABLE.code,
 ];
 
 impl From<domain::Error> for CommandError {

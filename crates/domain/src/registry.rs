@@ -114,7 +114,8 @@ pub fn validate_name(raw: &str) -> Result<String, Error> {
 }
 
 /// Accetta solo `http` e `https` con un host, senza credenziali nell'indirizzo:
-/// le credenziali andranno nel Credential Manager (v0.3.0), non in chiaro a schermo.
+/// le credenziali stanno nel Credential Manager come segreti dell'app (v0.4.0), non in chiaro
+/// nell'indirizzo né a schermo.
 pub fn validate_web_url(raw: &str) -> Result<String, Error> {
     let url = Url::parse(raw.trim()).map_err(|_| Error::UrlInvalid)?;
     if !matches!(url.scheme(), "http" | "https") {
@@ -237,7 +238,7 @@ fn target_sha256(target: &Target) -> Option<&str> {
     }
 }
 
-fn parse_uuid(row: &Row<'_>, index: usize) -> rusqlite::Result<Uuid> {
+pub(crate) fn parse_uuid(row: &Row<'_>, index: usize) -> rusqlite::Result<Uuid> {
     let text: String = row.get(index)?;
     Uuid::parse_str(&text)
         .map_err(|e| rusqlite::Error::FromSqlConversionFailure(index, Type::Text, Box::new(e)))
@@ -486,7 +487,7 @@ pub(crate) mod tests {
         path
     }
 
-    fn web(name: &str) -> AppInput {
+    pub(crate) fn web(name: &str) -> AppInput {
         AppInput {
             name: name.to_owned(),
             target: Target::Web {

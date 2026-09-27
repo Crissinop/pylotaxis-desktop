@@ -30,6 +30,15 @@ if (new Set(Object.values(sources)).size !== 1 || !tsName) {
   for (const [where, value] of Object.entries(sources)) problems.push(`    ${where}: ${value}`);
 }
 
+// Schema dei link diretti (dalla v0.5): il nome in minuscolo, unico schema registrato. Il
+// codice Rust lo legge dalla configurazione, quindi non ne contiene una copia. (v0.5.0)
+const schemes = config.plugins?.['deep-link']?.desktop?.schemes ?? [];
+if (tsName && (schemes.length !== 1 || schemes[0] !== tsName.toLowerCase())) {
+  problems.push(
+    `src-tauri/tauri.conf.json (schema dei link): ${JSON.stringify(schemes)}, atteso ["${tsName.toLowerCase()}"]`,
+  );
+}
+
 // Nel codice il nome può comparire solo nelle due costanti.
 const ALLOWED = new Set(['src/constants/app.ts', 'crates/domain/src/lib.rs']);
 const SCANNED = ['src', 'src-tauri/src', 'crates', 'scripts', 'index.html'];

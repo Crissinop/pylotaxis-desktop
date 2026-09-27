@@ -11,8 +11,8 @@
     "retry": "Try again",
     "lock": "Lock",
     "lockShortcut": "Lock now (Ctrl+L)",
-    "security": "Security",
-    "backToRegistry": "Back to the registry"
+    "backToRegistry": "Back to the registry",
+    "settings": "Settings"
   },
   "registry": {
     "emptyTitle": "The registry is empty",
@@ -27,7 +27,11 @@
       "executable": "Program",
       "web": "Web",
       "protocol": "Protocol"
-    }
+    },
+    "secrets": "Secrets",
+    "secretCount_one": "1 secret",
+    "secretCount_other": "{{count}} secrets",
+    "secretsFor": "Secrets of {{name}}"
   },
   "form": {
     "createTitle": "Add an app",
@@ -121,6 +125,72 @@
     "save": "Save PIN",
     "disableConfirm": "Turn off"
   },
+  "secrets": {
+    "title": "Secrets of {{name}}",
+    "intro": "Values are kept in the Windows Credential Manager and are never shown here: they are copied to the clipboard, outside Windows clipboard history, and the clipboard clears itself shortly after.",
+    "empty": "No secrets for this app.",
+    "add": "Add a secret",
+    "close": "Close",
+    "createTitle": "New secret",
+    "editTitle": "Edit “{{label}}”",
+    "replaceTitle": "Replace the value of “{{label}}”",
+    "labelLabel": "Label",
+    "labelPlaceholder": "E.g. Password, API token",
+    "usernameLabel": "Username (optional)",
+    "valueLabel": "Value",
+    "newValueLabel": "New value",
+    "valueHint": "Once saved, the value is no longer visible: you can copy it or replace it.",
+    "save": "Save",
+    "copy": "Copy",
+    "copyFor": "Copy {{label}}",
+    "openAndCopy": "Open and copy",
+    "replace": "Replace",
+    "updated": "Changed on {{date}}",
+    "copied_one": "“{{label}}” copied: the clipboard clears in {{count}} second.",
+    "copied_other": "“{{label}}” copied: the clipboard clears in {{count}} seconds.",
+    "saved": "Secret saved.",
+    "deleted": "Secret deleted.",
+    "deleteTitle": "Delete “{{label}}”?",
+    "deleteBody": "The value is also deleted from the Windows Credential Manager. This cannot be undone."
+  },
+  "settings": {
+    "title": "Settings",
+    "shortcutTitle": "Command palette",
+    "shortcutBody": "The shortcut opens the palette from any app: search, choose with the arrow keys and press Enter. While locked it brings up the lock screen.",
+    "shortcutLabel": "Shortcut",
+    "shortcutActive": "Active.",
+    "shortcutInactive": "Not active: another app already uses it. Choose a different one.",
+    "shortcutSaved": "Shortcut saved."
+  },
+  "keys": {
+    "space": "Space"
+  },
+  "tray": {
+    "open": "Open",
+    "palette": "Command palette",
+    "lock": "Lock",
+    "quit": "Quit"
+  },
+  "titlebar": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close (stays in the tray)"
+  },
+  "palette": {
+    "label": "Command palette",
+    "placeholder": "Search for an app, a secret or an action",
+    "empty": "No results.",
+    "loading": "Registry not available.",
+    "kind": {
+      "secret": "Secret: Enter copies it",
+      "action": "Action"
+    },
+    "actionLock": "Lock",
+    "actionOpen": "Open {{name}}",
+    "changed": "The executable has changed: launch it from the main window to confirm.",
+    "hint": "↑ ↓ to choose · Enter to run · Esc to close"
+  },
   "errors": {
     "DB_WRONG_KEY": "The key does not open the database, or the file is damaged.",
     "DB_CIPHER_UNAVAILABLE": "Database encryption is not active: the registry is not opened.",
@@ -143,6 +213,11 @@
     "PIN_THROTTLED": "Too many attempts: wait before trying again.",
     "PIN_HASH_FAILED": "The PIN could not be checked. Try again; if it happens again, restart the app.",
     "IDLE_INVALID": "The inactivity time must be between 1 and 240 minutes.",
+    "SECRET_LABEL_INVALID": "The label must have 1 to 60 characters, with no line breaks.",
+    "SECRET_LABEL_DUPLICATE": "This app already has a secret with this label.",
+    "SECRET_USERNAME_INVALID": "The username can have at most 200 characters, with no line breaks or tabs.",
+    "SECRET_VALUE_INVALID": "The value cannot be empty or contain the NUL character.",
+    "SECRET_TOO_LONG": "The value exceeds the 2560 bytes the Windows Credential Manager accepts.",
     "IO_ERROR": "The file cannot be read.",
     "DB_ERROR": "The registry returned an error.",
     "KEYSTORE_UNAVAILABLE": "The Windows Credential Manager is not responding.",
@@ -161,7 +236,12 @@
     "HELLO_RETRIES_EXHAUSTED": "Too many Windows Hello attempts. Use your PIN.",
     "HELLO_CANCELED": "Verification canceled.",
     "HELLO_FAILED": "Windows Hello did not respond. Use your PIN.",
-    "UNKNOWN": "An unexpected error occurred."
+    "SECRET_MISSING": "The value of this secret is no longer in the Credential Manager. Replace it to use it again.",
+    "CLIPBOARD_UNAVAILABLE": "The clipboard is busy with another app. Try again in a moment.",
+    "UNKNOWN": "An unexpected error occurred.",
+    "SHORTCUT_INVALID": "Shortcut not allowed: choose one from the list.",
+    "SHORTCUT_TAKEN": "Shortcut not available: another app already uses it. Choose a different one.",
+    "TRAY_UNAVAILABLE": "The notification area icon is not available."
   },
   "footer": {
     "version": "Version {{version}}",

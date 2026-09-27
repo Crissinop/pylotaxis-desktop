@@ -1,20 +1,30 @@
 //! Guscio Tauri: registra i comandi e avvia la finestra.
 //! Le regole vivono nel crate `domain`; qui si valida, si delega e si traduce (A.7.3). (v0.1.0)
 
+mod clipboard;
 mod commands;
 mod errors;
 mod keystore;
+mod links;
 mod lock;
+mod palette;
 mod platform;
+mod secrets;
 mod security;
+mod shortcut;
 mod state;
+mod tray;
+mod vault;
+
+use std::collections::HashSet;
 
 use tauri::ipc::Invoke;
-use tauri::{Manager, Runtime};
+use tauri::{Manager, RunEvent, Runtime};
 
 use crate::errors::CommandError;
 use crate::keystore::KeyStore;
 use crate::state::AppState;
+use crate::vault::{KeyringBackend, Vault};
 
 /// Apre il database all'avvio. Un errore non blocca la finestra: resta nello stato e
 /// l'interfaccia lo spiega con il suo codice (A.7.5). (v0.2.0)
@@ -79,6 +89,16 @@ fn with_commands<R: Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
         security::security_disable,
         security::security_set_hello,
         security::security_set_idle,
+        secrets::secret_create,
+        secrets::secret_update,
+        secrets::secret_replace,
+        secrets::secret_delete,
+        secrets::secret_copy,
+        shortcut::shortcut_status,
+        shortcut::shortcut_set,
+        tray::tray_setup,
+        palette::main_window_show,
+        palette::palette_ready,
     ]))
 }
 
@@ -87,18 +107,62 @@ pub fn run() {
     // Unica eccezione alla regola "niente expect" (A.7.5): se il runtime non si avvia
     // non esiste un comportamento degradato possibile, e il messaggio è l'unica diagnosi.
     #[allow(clippy::expect_used)]
-    with_commands(tauri::Builder::default())
-        // Plugin usati solo da Rust: la capability non concede al webview nessun loro comando.
+    let app = with_commands(tauri::Builder::default())
+        // Istanza singola come primo plugin, come chiede la sua documentazione. Una seconda
+        // istanza porta davanti la finestra; se porta un link, il plugin dei link l'ha già
+        // ricevuto e apre la palette (links.rs). (v0.5.0)
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if !links::carries_link(app, &args) {
+                tray::show_main(app);
+            }
+        }))
+        // Plugin usati solo da Rust: nessuna capability concede al webview un loro comando.
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let registry = open_registry(app);
-            app.manage(AppState::new(registry));
+            let vault = Vault::new(Box::new(KeyringBackend::new(&app.config().identifier)));
+            let state = AppState::new(registry, vault);
+            sweep_orphan_secrets(&state);
+            app.manage(state);
             lock::spawn_monitor(app.handle().clone());
+            // Rapidità (v0.5.0): chiusura verso la tray, palette nascosta quando perde il
+            // fuoco, scorciatoia salvata e link diretti.
+            let handle = app.handle();
+            tray::keep_in_tray(handle);
+            palette::hide_on_blur(handle);
+            shortcut::register_saved(handle, &app.state::<AppState>());
+            links::listen(handle);
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("avvio del runtime Tauri non riuscito");
+    app.run(|handle, event| {
+        // Alla chiusura un segreto copiato non resta negli appunti (v0.4.0).
+        if let RunEvent::Exit = event
+            && let Some(state) = handle.try_state::<AppState>()
+        {
+            state.clipboard.clear_now();
+        }
+    });
+}
+
+/// Elimina le credenziali dei segreti che il registro non conosce più: restano da un errore
+/// a metà tra registro e Credential Manager. Si fa all'avvio, anche da bloccata, perché è
+/// lavoro interno che non passa dall'IPC. Senza registro leggibile non si tocca nulla. (v0.4.0)
+fn sweep_orphan_secrets(state: &AppState) {
+    let known = state.with_db_even_if_locked(|db| {
+        Ok(db
+            .secrets()?
+            .into_iter()
+            .map(|secret| secret.id)
+            .collect::<HashSet<_>>())
+    });
+    if let Ok(known) = known {
+        state.vault.sweep(&known);
+    }
 }
 
 #[cfg(test)]
@@ -114,6 +178,7 @@ mod tests {
 
     use super::*;
     use crate::lock::ALLOWED_WHILE_LOCKED;
+    use crate::vault::MemoryBackend;
 
     mod app_commands {
         include!("../app_commands.rs");
@@ -137,13 +202,50 @@ mod tests {
         .unwrap();
         db.set_pin(None, PIN, 0).unwrap();
         let app = with_commands(mock_builder())
-            .manage(AppState::new(Ok(db)))
+            .manage(AppState::new(Ok(db), memory_vault()))
             .build(mock_context(noop_assets()))
             .unwrap();
         let webview = WebviewWindowBuilder::new(&app, "main", Default::default())
             .build()
             .unwrap();
         (dir, app, webview)
+    }
+
+    fn memory_vault() -> Vault {
+        Vault::new(Box::new(MemoryBackend::default()))
+    }
+
+    /// App sbloccata (nessun PIN) con un'app web nel registro, di cui restituisce l'id.
+    fn unlocked_app() -> (
+        tempfile::TempDir,
+        tauri::App<MockRuntime>,
+        WebviewWindow<MockRuntime>,
+        String,
+    ) {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Database::open(
+            &dir.path().join("r.db"),
+            &DatabaseKey::from_bytes([8; domain::db::KEY_LEN]),
+        )
+        .unwrap();
+        let portal = db
+            .create_app(&domain::registry::AppInput {
+                name: "Portale".into(),
+                target: domain::registry::Target::Web {
+                    url: "https://example.com/".into(),
+                },
+                category_id: None,
+                tags: Vec::new(),
+            })
+            .unwrap();
+        let app = with_commands(mock_builder())
+            .manage(AppState::new(Ok(db), memory_vault()))
+            .build(mock_context(noop_assets()))
+            .unwrap();
+        let webview = WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .unwrap();
+        (dir, app, webview, portal.id.to_string())
     }
 
     /// Invoca un comando come farebbe il webview, passando da `on_message` (A.6 n. 13).
@@ -260,12 +362,122 @@ mod tests {
         }
     }
 
-    /// La capability concede esattamente i comandi dell'elenco, più i due permessi per gli
-    /// eventi del blocco: nessun permesso in più (A.6 n. 10). (v0.3.0)
+    const SENTINEL: &str = "valore-sentinella-9f2c";
+    const SENTINEL_REPLACED: &str = "sostituto-sentinella-41aa";
+
+    /// Il criterio della v0.4.0: nessun comando restituisce un segreto al webview. Il valore
+    /// sentinella entra dal gestore vero e si verifica che stia davvero nel vault; poi si
+    /// invocano tutti i comandi, con argomenti validi dove possono girare senza finestre di
+    /// sistema (scelta dei file e avvio restano con argomenti vuoti), e nessuna risposta lo
+    /// contiene. Una sonda che copia il valore nell'etichetta fa fallire il test (A.6 n. 14).
     #[test]
-    fn the_capability_grants_exactly_the_listed_commands() {
-        let capability: Value =
-            serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
+    fn no_command_ever_returns_a_secret_value() {
+        let (_dir, app, webview, portal) = unlocked_app();
+        let created = invoke(
+            &webview,
+            "secret_create",
+            json!({ "appId": portal, "label": "Token", "username": "mario", "value": SENTINEL }),
+        )
+        .unwrap();
+        let secret = created["id"].as_str().unwrap().to_owned();
+        let state = app.state::<AppState>();
+        let stored = state
+            .vault
+            .with_value(secret.parse().unwrap(), |value| Ok(value == SENTINEL))
+            .unwrap();
+        assert!(stored, "il valore deve stare nel vault");
+
+        let mut texts = vec![created.to_string()];
+        let with_args = |command: &str| match command {
+            "secret_update" => json!({ "id": secret, "label": "Token API", "username": null }),
+            "secret_replace" => json!({ "id": secret, "value": SENTINEL_REPLACED }),
+            "secret_copy" => json!({ "id": secret }),
+            _ => json!({}),
+        };
+        for command in APP_COMMANDS.iter().filter(|c| **c != "secret_delete") {
+            let response = invoke(&webview, command, with_args(command));
+            texts.push(match response {
+                Ok(value) | Err(value) => value.to_string(),
+            });
+        }
+        for text in &texts {
+            for value in [SENTINEL, SENTINEL_REPLACED] {
+                assert!(!text.contains(value), "{value} in {text}");
+            }
+        }
+        let listed = invoke(&webview, "registry_list", json!({})).unwrap();
+        assert_eq!(listed["secrets"][0]["label"], "Token API");
+    }
+
+    /// Eliminare un segreto o l'app che lo contiene elimina anche il valore dal vault.
+    #[test]
+    fn deleting_a_secret_or_its_app_removes_the_value_too() {
+        let (_dir, app, webview, portal) = unlocked_app();
+        let create = |label: &str| {
+            invoke(
+                &webview,
+                "secret_create",
+                json!({ "appId": portal, "label": label, "username": null, "value": "x" }),
+            )
+            .unwrap()["id"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        };
+        let (first, _second) = (create("Uno"), create("Due"));
+        let state = app.state::<AppState>();
+        assert_eq!(state.vault.stored_ids().len(), 2);
+        invoke(&webview, "secret_delete", json!({ "id": first })).unwrap();
+        assert_eq!(state.vault.stored_ids().len(), 1);
+        invoke(&webview, "app_delete", json!({ "id": portal })).unwrap();
+        assert!(state.vault.stored_ids().is_empty());
+    }
+
+    /// Una riga che non si scrive (etichetta già usata) non lascia il valore nel vault.
+    #[test]
+    fn a_refused_secret_leaves_no_value_behind() {
+        let (_dir, app, webview, portal) = unlocked_app();
+        let args = json!({ "appId": portal, "label": "Token", "username": null, "value": "x" });
+        invoke(&webview, "secret_create", args.clone()).unwrap();
+        assert_eq!(
+            invoke(&webview, "secret_create", args).err(),
+            Some(json!({ "code": "SECRET_LABEL_DUPLICATE" }))
+        );
+        assert_eq!(app.state::<AppState>().vault.stored_ids().len(), 1);
+    }
+
+    /// Comandi della palette, e quelli che ha solo lei (v0.5.0).
+    const PALETTE_COMMANDS: &[&str] = &[
+        "registry_list",
+        "app_launch",
+        "secret_copy",
+        "lock_now",
+        "main_window_show",
+        "palette_ready",
+    ];
+    const PALETTE_ONLY: &[&str] = &["main_window_show", "palette_ready"];
+    /// Permessi core: eventi per tutte e due; barra del titolo propria per la principale;
+    /// per la palette solo nascondersi.
+    const MAIN_CORE: &[&str] = &[
+        "core:event:allow-listen",
+        "core:event:allow-unlisten",
+        "core:window:allow-start-dragging",
+        "core:window:allow-internal-toggle-maximize",
+        "core:window:allow-minimize",
+        "core:window:allow-toggle-maximize",
+        "core:window:allow-is-maximized",
+        "core:window:allow-close",
+    ];
+    const PALETTE_CORE: &[&str] = &[
+        "core:event:allow-listen",
+        "core:event:allow-unlisten",
+        "core:window:allow-hide",
+    ];
+
+    /// Permessi di una capability, ordinati, dopo aver verificato a quale finestra va.
+    fn granted(source: &str, window: &str) -> Vec<String> {
+        let capability: Value = serde_json::from_str(source).unwrap();
+        assert_eq!(capability["windows"], json!([window]));
         let mut granted: Vec<String> = capability["permissions"]
             .as_array()
             .unwrap()
@@ -273,15 +485,65 @@ mod tests {
             .map(|p| p.as_str().unwrap().to_owned())
             .collect();
         granted.sort_unstable();
-        let mut expected: Vec<String> = APP_COMMANDS
-            .iter()
+        granted
+    }
+
+    fn expected<'a>(commands: impl Iterator<Item = &'a &'a str>, core: &[&str]) -> Vec<String> {
+        let mut expected: Vec<String> = commands
             .map(|command| format!("allow-{}", command.replace('_', "-")))
-            .chain([
-                "core:event:allow-listen".into(),
-                "core:event:allow-unlisten".into(),
-            ])
+            .chain(core.iter().map(|permission| (*permission).to_owned()))
             .collect();
         expected.sort_unstable();
-        assert_eq!(granted, expected);
+        expected
+    }
+
+    /// Ogni finestra riceve esattamente i suoi permessi, nessuno in più (A.6 n. 10 e 13): la
+    /// principale tutti i comandi tranne quelli della sola palette; la palette solo i suoi.
+    /// Ogni comando dell'elenco è concesso ad almeno una finestra. (v0.3.0, per finestra dalla
+    /// v0.5.0)
+    #[test]
+    fn each_window_gets_exactly_its_commands() {
+        assert_eq!(
+            granted(include_str!("../capabilities/default.json"), "main"),
+            expected(
+                APP_COMMANDS.iter().filter(|c| !PALETTE_ONLY.contains(c)),
+                MAIN_CORE
+            )
+        );
+        assert_eq!(
+            granted(include_str!("../capabilities/palette.json"), "palette"),
+            expected(PALETTE_COMMANDS.iter(), PALETTE_CORE)
+        );
+        for command in PALETTE_COMMANDS {
+            assert!(APP_COMMANDS.contains(command), "{command} non è un comando");
+        }
+    }
+
+    /// Una scorciatoia fuori elenco si rifiuta nel dominio; una che il sistema non concede
+    /// (qui manca il plugin) lascia la precedente e il valore salvato com'erano. (v0.5.0)
+    #[test]
+    fn a_refused_shortcut_leaves_the_previous_one_in_place() {
+        let (_dir, _app, webview, _portal) = unlocked_app();
+        assert_eq!(
+            invoke(
+                &webview,
+                "shortcut_set",
+                json!({ "shortcut": "Ctrl+Alt+Delete" })
+            )
+            .err(),
+            Some(json!({ "code": "SHORTCUT_INVALID" }))
+        );
+        assert_eq!(
+            invoke(
+                &webview,
+                "shortcut_set",
+                json!({ "shortcut": "Ctrl+Alt+P" })
+            )
+            .err(),
+            Some(json!({ "code": "SHORTCUT_TAKEN" }))
+        );
+        let status = invoke(&webview, "shortcut_status", json!({})).unwrap();
+        assert_eq!(status["shortcut"], "Ctrl+Alt+Space");
+        assert_eq!(status["options"].as_array().unwrap().len(), 3);
     }
 }

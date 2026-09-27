@@ -86,9 +86,9 @@ export function SecurityView({ status, onStatus }: SecurityViewProps) {
 
   return (
     <section className="settings" aria-labelledby={ids.title}>
-      <h1 id={ids.title} className="settings__title">
+      <h2 id={ids.title} className="settings__title">
         {t('security.title')}
-      </h1>
+      </h2>
 
       <div className="settings__group">
         <h2 className="settings__heading">

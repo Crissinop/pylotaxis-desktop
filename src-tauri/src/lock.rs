@@ -19,9 +19,17 @@ use crate::state::AppState;
 
 /// Comandi ammessi da bloccata: le informazioni sull'app e ciò che serve alla schermata di
 /// blocco. `lock_status` non mostra nulla del registro: stato del blocco, metodi attivi e
-/// attesa del PIN, cioè quello che la schermata stessa rende visibile.
-pub const ALLOWED_WHILE_LOCKED: &[&str] =
-    &["app_info", "lock_status", "unlock_pin", "unlock_hello"];
+/// attesa del PIN, cioè quello che la schermata stessa rende visibile. Dalla v0.5.0
+/// `tray_setup` (l'app può partire bloccata, e il comando cambia solo le etichette della
+/// tray) e `palette_ready` (segna che la pagina della palette ascolta; nessun dato).
+pub const ALLOWED_WHILE_LOCKED: &[&str] = &[
+    "app_info",
+    "lock_status",
+    "unlock_pin",
+    "unlock_hello",
+    "tray_setup",
+    "palette_ready",
+];
 
 /// Evento inviato al webview a ogni cambio di stato. Porta solo `locked`: basta a nascondere
 /// subito il contenuto, anche se leggere il resto dello stato fallisse.
@@ -137,6 +145,10 @@ pub fn engage<R: Runtime>(app: &AppHandle<R>, state: &AppState) -> bool {
     let changed = state.engage_lock();
     if changed {
         platform::hello_cancel_pending();
+        // Un segreto copiato non resta negli appunti di un'app bloccata (v0.4.0).
+        state.clipboard.clear_now();
+        // La palette elenca il registro: si nasconde con il blocco (v0.5.0).
+        crate::palette::hide(app);
         announce(app, true);
     }
     changed

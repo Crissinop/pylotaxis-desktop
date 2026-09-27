@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "palette",
+  "description": "Palette di comando (v0.5.0): solo ciò che serve a cercare, avviare, copiare un segreto, bloccare e aprire la finestra principale; ascolto degli eventi (apertura, blocco) e il permesso di nascondersi.",
+  "windows": ["palette"],
+  "permissions": [
+    "allow-registry-list",
+    "allow-app-launch",
+    "allow-secret-copy",
+    "allow-lock-now",
+    "allow-main-window-show",
+    "allow-palette-ready",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-hide"
+  ]
+}

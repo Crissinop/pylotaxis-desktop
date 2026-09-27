@@ -8,9 +8,13 @@ use domain::{Database, DatabaseKey, KeyPlan};
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::clipboard::ClipboardState;
 use crate::errors::CommandError;
 use crate::keystore::KeyStore;
 use crate::lock::LockState;
+use crate::palette::PaletteState;
+use crate::shortcut::ShortcutState;
+use crate::vault::Vault;
 
 /// Nome del file del database nella cartella dati dell'app.
 pub const DATABASE_FILE: &str = "registry.db";
@@ -29,13 +33,19 @@ pub struct AppState {
     /// Una sola scelta in sospeso: il modulo di inserimento ne gestisce una alla volta.
     pick: Mutex<Option<PendingPick>>,
     pub lock: LockState,
+    /// Valori dei segreti, nel Credential Manager (v0.4.0).
+    pub vault: Vault,
+    pub clipboard: ClipboardState,
+    /// Scorciatoia della palette e aperture in attesa della sua pagina (v0.5.0).
+    pub shortcut: ShortcutState,
+    pub palette: PaletteState,
 }
 
 impl AppState {
     /// La configurazione del blocco si legge subito: un'app con il PIN parte bloccata. Se la
     /// lettura fallisce, l'errore prende il posto del database, così nessun comando parte da
     /// uno stato del blocco sconosciuto (v0.3.0).
-    pub fn new(db: Result<Database, CommandError>) -> Self {
+    pub fn new(db: Result<Database, CommandError>, vault: Vault) -> Self {
         let opened = db.and_then(|db| {
             let settings = db.lock_settings()?;
             Ok((db, settings))
@@ -48,6 +58,10 @@ impl AppState {
             db: Mutex::new(db),
             pick: Mutex::new(None),
             lock,
+            vault,
+            clipboard: ClipboardState::default(),
+            shortcut: ShortcutState::default(),
+            palette: PaletteState::default(),
         }
     }
 
@@ -247,6 +261,10 @@ mod tests {
         assert!(resolve_target(keep(), &mut None, Some(&web_app)).is_err());
     }
 
+    fn memory_vault() -> Vault {
+        Vault::new(Box::new(crate::vault::MemoryBackend::default()))
+    }
+
     fn locked_state() -> (tempfile::TempDir, AppState) {
         let dir = tempfile::tempdir().unwrap();
         let db = Database::open(
@@ -255,7 +273,7 @@ mod tests {
         )
         .unwrap();
         db.set_pin(None, "482915", 0).unwrap();
-        (dir, AppState::new(Ok(db)))
+        (dir, AppState::new(Ok(db), memory_vault()))
     }
 
     /// Secondo controllo, dietro il filtro: da bloccata il registro non si legge nemmeno

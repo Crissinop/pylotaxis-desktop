@@ -23,19 +23,32 @@ domain = { path = "../crates/domain" }
 # lato Rust: nessun plugin espone i segreti a JavaScript (A.7.10, lezione 26). (v0.2.0)
 keyring-core = "1.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
-tauri = { version = "2.11.6", features = [] }
+# Configurazione dei plugin (`Config::plugins`): lo schema dei link si legge da lì (v0.5.0).
+serde_json = "1.0.151"
+# Icona nella tray: funzione del core di Tauri, non un plugin (v0.5.0).
+tauri = { version = "2.11.6", features = ["tray-icon"] }
 # Plugin ufficiali usati solo da Rust: nessuna capability ne concede i comandi al webview.
 tauri-plugin-dialog = "2.7.2"
 tauri-plugin-opener = "2.5.4"
+# Rapidità (v0.5.0), plugin usati solo da Rust: nessun pacchetto npm e nessun loro permesso
+# nelle capability. Versioni stabili 2.x (le 3.0 esistono solo come alpha).
+tauri-plugin-global-shortcut = "2.3.2"
+tauri-plugin-deep-link = "2.4.10"
+# Con `deep-link` la seconda istanza consegna il link alla prima prima della callback.
+tauri-plugin-single-instance = { version = "2.4.5", features = ["deep-link"] }
 uuid = { version = "1.26.1", features = ["v7"] }
 
 [target.'cfg(windows)'.dependencies]
-# Windows Hello legato alla finestra, inattività di sistema e stato della sessione. È la
+# Windows Hello legato alla finestra, inattività di sistema e stato della sessione; dalla v0.4.0
+# anche gli appunti privati (DataExchange, Memory, Ole). È la
 # versione che Tauri usa già: nessuna seconda copia del crate, e lo stesso tipo HWND. (v0.3.0)
 windows = { version = "0.61.3", features = [
     "Foundation",
     "Security_Credentials_UI",
     "Win32_Foundation",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_Ole",
     "Win32_System_RemoteDesktop",
     "Win32_System_SystemInformation",
     "Win32_System_WinRT",
@@ -46,7 +59,6 @@ windows-future = "0.2.1"
 windows-native-keyring-store = "1.1.0"
 
 [dev-dependencies]
-serde_json = "1.0.151"
 tempfile = "3.27.0"
 # Runtime simulato di Tauri: i test del blocco passano dal gestore vero dei comandi (v0.3.0).
 tauri = { version = "2.11.6", features = ["test"] }

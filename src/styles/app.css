@@ -499,6 +499,177 @@ select {
   }
 }
 
+/* Segreti di un'app: elenco nella finestra, del valore non si mostra nulla (v0.4.0). */
+.secrets__heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.secrets__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.secrets__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.secrets__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-rule);
+}
+
+.secrets__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.secrets__label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.secrets__meta {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.secrets__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* Barra del titolo propria: i controlli della finestra in fondo all'intestazione (v0.5.0). */
+.window-controls {
+  display: flex;
+  margin-left: auto;
+}
+
+.window-controls__button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.window-controls__button svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.window-controls__button:hover {
+  background: var(--color-surface);
+}
+
+.window-controls__button--close:hover {
+  background: var(--color-danger);
+  color: var(--color-primary-text);
+}
+
+.settings-page {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.settings-page__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+}
+
+/* Palette: occupa tutta la sua finestra; input, elenco, riga di aiuto (v0.5.0). */
+.palette {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.palette__input {
+  padding: var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-rule);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 18px;
+}
+
+.palette__input:focus-visible {
+  outline: none;
+}
+
+.palette__list {
+  flex: 1;
+  margin: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette__option {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.palette__option[aria-selected='true'] {
+  background: var(--color-surface);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.palette__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.palette__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette__empty {
+  margin: 0;
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.palette__footer {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-rule);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
 .shell__footer {
   display: flex;
   align-items: center;

@@ -11,8 +11,8 @@
     "retry": "Riprova",
     "lock": "Blocca",
     "lockShortcut": "Blocca subito (Ctrl+L)",
-    "security": "Sicurezza",
-    "backToRegistry": "Torna al registro"
+    "backToRegistry": "Torna al registro",
+    "settings": "Impostazioni"
   },
   "registry": {
     "emptyTitle": "Il registro è vuoto",
@@ -27,7 +27,11 @@
       "executable": "Programma",
       "web": "Web",
       "protocol": "Protocollo"
-    }
+    },
+    "secrets": "Segreti",
+    "secretCount_one": "1 segreto",
+    "secretCount_other": "{{count}} segreti",
+    "secretsFor": "Segreti di {{name}}"
   },
   "form": {
     "createTitle": "Aggiungi un'app",
@@ -121,6 +125,72 @@
     "save": "Salva il PIN",
     "disableConfirm": "Disattiva"
   },
+  "secrets": {
+    "title": "Segreti di {{name}}",
+    "intro": "I valori stanno nel Credential Manager di Windows e qui non si mostrano mai: si copiano negli appunti, fuori dalla cronologia di Windows, e gli appunti si svuotano da soli poco dopo.",
+    "empty": "Nessun segreto per questa app.",
+    "add": "Aggiungi un segreto",
+    "close": "Chiudi",
+    "createTitle": "Nuovo segreto",
+    "editTitle": "Modifica «{{label}}»",
+    "replaceTitle": "Sostituisci il valore di «{{label}}»",
+    "labelLabel": "Etichetta",
+    "labelPlaceholder": "Es. Password, Token API",
+    "usernameLabel": "Nome utente (facoltativo)",
+    "valueLabel": "Valore",
+    "newValueLabel": "Nuovo valore",
+    "valueHint": "Dopo il salvataggio il valore non si vede più: potrai copiarlo o sostituirlo.",
+    "save": "Salva",
+    "copy": "Copia",
+    "copyFor": "Copia {{label}}",
+    "openAndCopy": "Apri e copia",
+    "replace": "Sostituisci",
+    "updated": "Modificato il {{date}}",
+    "copied_one": "«{{label}}» copiato: gli appunti si svuotano tra {{count}} secondo.",
+    "copied_other": "«{{label}}» copiato: gli appunti si svuotano tra {{count}} secondi.",
+    "saved": "Segreto salvato.",
+    "deleted": "Segreto eliminato.",
+    "deleteTitle": "Eliminare «{{label}}»?",
+    "deleteBody": "Il valore viene eliminato anche dal Credential Manager di Windows. Non si può annullare."
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "shortcutTitle": "Palette di comando",
+    "shortcutBody": "La scorciatoia apre la palette da qualunque app: cerchi, scegli con le frecce e premi Invio. Da bloccata porta alla schermata di blocco.",
+    "shortcutLabel": "Scorciatoia",
+    "shortcutActive": "Attiva.",
+    "shortcutInactive": "Non attiva: la usa già un'altra app. Scegline un'altra.",
+    "shortcutSaved": "Scorciatoia salvata."
+  },
+  "keys": {
+    "space": "Spazio"
+  },
+  "tray": {
+    "open": "Apri",
+    "palette": "Palette di comando",
+    "lock": "Blocca",
+    "quit": "Esci"
+  },
+  "titlebar": {
+    "minimize": "Riduci a icona",
+    "maximize": "Ingrandisci",
+    "restore": "Ripristina",
+    "close": "Chiudi (resta nella tray)"
+  },
+  "palette": {
+    "label": "Palette di comando",
+    "placeholder": "Cerca un'app, un segreto o un'azione",
+    "empty": "Nessun risultato.",
+    "loading": "Registro non disponibile.",
+    "kind": {
+      "secret": "Segreto: Invio lo copia",
+      "action": "Azione"
+    },
+    "actionLock": "Blocca",
+    "actionOpen": "Apri {{name}}",
+    "changed": "L'eseguibile è cambiato: avvialo dalla finestra principale per confermare.",
+    "hint": "↑ ↓ per scegliere · Invio per eseguire · Esc per chiudere"
+  },
   "errors": {
     "DB_WRONG_KEY": "La chiave non apre il database, oppure il file è danneggiato.",
     "DB_CIPHER_UNAVAILABLE": "La cifratura del database non è attiva: il registro non viene aperto.",
@@ -143,6 +213,11 @@
     "PIN_THROTTLED": "Troppi tentativi: attendi prima di riprovare.",
     "PIN_HASH_FAILED": "Impossibile verificare il PIN. Riprova; se succede ancora, riavvia l'app.",
     "IDLE_INVALID": "Il tempo di inattività deve essere tra 1 e 240 minuti.",
+    "SECRET_LABEL_INVALID": "L'etichetta deve avere da 1 a 60 caratteri, senza a capo.",
+    "SECRET_LABEL_DUPLICATE": "Questa app ha già un segreto con questa etichetta.",
+    "SECRET_USERNAME_INVALID": "Il nome utente può avere al massimo 200 caratteri, senza a capo né tabulazioni.",
+    "SECRET_VALUE_INVALID": "Il valore non può essere vuoto né contenere il carattere NUL.",
+    "SECRET_TOO_LONG": "Il valore supera i 2560 byte che il Credential Manager di Windows accetta.",
     "IO_ERROR": "Il file non si può leggere.",
     "DB_ERROR": "Il registro ha risposto con un errore.",
     "KEYSTORE_UNAVAILABLE": "Il Credential Manager di Windows non risponde.",
@@ -161,7 +236,12 @@
     "HELLO_RETRIES_EXHAUSTED": "Troppi tentativi con Windows Hello. Usa il PIN.",
     "HELLO_CANCELED": "Verifica annullata.",
     "HELLO_FAILED": "Windows Hello non ha risposto. Usa il PIN.",
-    "UNKNOWN": "Si è verificato un errore imprevisto."
+    "SECRET_MISSING": "Il valore di questo segreto non è più nel Credential Manager. Sostituiscilo per usarlo ancora.",
+    "CLIPBOARD_UNAVAILABLE": "Gli appunti sono occupati da un'altra app. Riprova tra un istante.",
+    "UNKNOWN": "Si è verificato un errore imprevisto.",
+    "SHORTCUT_INVALID": "Scorciatoia non ammessa: scegline una dall'elenco.",
+    "SHORTCUT_TAKEN": "Scorciatoia non disponibile: la usa già un'altra app. Scegline un'altra.",
+    "TRAY_UNAVAILABLE": "L'icona nell'area di notifica non è disponibile."
   },
   "footer": {
     "version": "Versione {{version}}",

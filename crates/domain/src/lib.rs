@@ -9,6 +9,8 @@ mod hex;
 pub mod launch;
 pub mod lock;
 pub mod registry;
+pub mod secrets;
+pub mod shortcut;
 
 pub use db::{Database, DatabaseKey, KeyPlan, plan_key};
 pub use error::Error;
