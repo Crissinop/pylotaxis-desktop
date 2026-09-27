@@ -985,7 +985,7 @@ dependencies = [
 
 [[package]]
 name = "domain"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "argon2",
  "getrandom 0.4.3",
@@ -3084,7 +3084,7 @@ dependencies = [
 
 [[package]]
 name = "pylotaxis"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "domain",
  "keyring-core",

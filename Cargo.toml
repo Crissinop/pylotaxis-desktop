@@ -7,7 +7,7 @@ members = ["src-tauri", "crates/domain"]
 [workspace.package]
 # Versione unica dei crate: è uno dei tre manifest controllati da
 # scripts/check-versions.mjs, insieme a package.json e tauri.conf.json (v0.1.0).
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 
 [workspace.lints.rust]
