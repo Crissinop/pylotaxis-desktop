@@ -644,6 +644,10 @@ select {
 }
 
 .palette__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -668,6 +672,119 @@ select {
   border-top: 1px solid var(--color-rule);
   color: var(--color-text-muted);
   font-size: 12px;
+}
+
+/* Ambienti e stato delle app (v0.6.0). La produzione è l'unico ambiente a colori, sempre con
+   la sua etichetta; sviluppo e collaudo sono etichette neutre. Lo stato ha sempre il testo. */
+.env-badge {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.env-badge--production {
+  border-color: var(--color-production);
+  background: var(--color-production);
+  color: var(--color-production-text);
+}
+
+.app-row--production {
+  box-shadow: inset 3px 0 0 var(--color-production);
+}
+
+.health {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.health__dot {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+
+.health--active .health__dot {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.health--server_error,
+.health--unreachable,
+.health--invalid_certificate {
+  color: var(--color-danger);
+}
+
+.health--server_error .health__dot,
+.health--unreachable .health__dot,
+.health--invalid_certificate .health__dot {
+  background: currentColor;
+}
+
+/* Gruppi di avvio (v0.6.0). */
+.groups__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.group-order {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-order__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-rule);
+  border-radius: 6px;
+}
+
+.group-order__name {
+  font-weight: 600;
+}
+
+.group-order__actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.group-add {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.group-add .field__input {
+  flex: 1;
+}
+
+.group-launch__warning {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--color-production);
+  font-weight: 600;
+}
+
+.field--check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
 }
 
 .shell__footer {

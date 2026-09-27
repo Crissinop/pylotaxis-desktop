@@ -36,6 +36,13 @@ tauri-plugin-global-shortcut = "2.3.2"
 tauri-plugin-deep-link = "2.4.10"
 # Con `deep-link` la seconda istanza consegna il link alla prima prima della callback.
 tauri-plugin-single-instance = { version = "2.4.5", features = ["deep-link"] }
+# Organizzazione (v0.6.0). Stato delle app web: client HTTP bloccante, senza le funzioni
+# predefinite. `native-tls` su Windows è il TLS di sistema (SChannel); i certificati di sistema
+# si impostano nel codice (health.rs). Porta con sé le radici Mozilla, non usate.
+ureq = { version = "3.4.2", default-features = false, features = ["native-tls"] }
+# Avvio con Windows, usato solo da Rust. Versione esatta: la 2.6.0 richiede Tauri 2.12, un
+# aggiornamento di piattaforma da fare in una versione dedicata (A.10).
+tauri-plugin-autostart = "=2.5.1"
 uuid = { version = "1.26.1", features = ["v7"] }
 
 [target.'cfg(windows)'.dependencies]

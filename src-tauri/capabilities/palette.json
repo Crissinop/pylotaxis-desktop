@@ -10,6 +10,8 @@
     "allow-lock-now",
     "allow-main-window-show",
     "allow-palette-ready",
+    "allow-group-launch",
+    "allow-health-status",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-hide"

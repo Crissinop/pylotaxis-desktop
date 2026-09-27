@@ -1,9 +1,12 @@
 //! Guscio Tauri: registra i comandi e avvia la finestra.
 //! Le regole vivono nel crate `domain`; qui si valida, si delega e si traduce (A.7.3). (v0.1.0)
 
+mod autostart;
 mod clipboard;
 mod commands;
 mod errors;
+mod groups;
+mod health;
 mod keystore;
 mod links;
 mod lock;
@@ -99,6 +102,13 @@ fn with_commands<R: Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
         tray::tray_setup,
         palette::main_window_show,
         palette::palette_ready,
+        groups::group_create,
+        groups::group_update,
+        groups::group_delete,
+        groups::group_launch,
+        health::health_status,
+        autostart::autostart_status,
+        autostart::autostart_set,
     ]))
 }
 
@@ -119,6 +129,12 @@ pub fn run() {
         // Plugin usati solo da Rust: nessuna capability concede al webview un loro comando.
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // Avvio con Windows: la voce porta l'argomento che tiene nascosta la finestra (v0.6.0).
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .args([autostart::AUTOSTART_ARG])
+                .build(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -135,6 +151,11 @@ pub fn run() {
             palette::hide_on_blur(handle);
             shortcut::register_saved(handle, &app.state::<AppState>());
             links::listen(handle);
+            // La finestra nasce nascosta (tauri.conf.json) e si mostra qui, tranne quando
+            // Windows avvia l'app all'accesso: allora resta nella tray. (v0.6.0)
+            if !autostart::started_at_login() {
+                tray::show_main(handle);
+            }
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -236,6 +257,8 @@ mod tests {
                 },
                 category_id: None,
                 tags: Vec::new(),
+                environment: None,
+                health_check: false,
             })
             .unwrap();
         let app = with_commands(mock_builder())
@@ -454,6 +477,9 @@ mod tests {
         "lock_now",
         "main_window_show",
         "palette_ready",
+        // Un gruppo si apre anche dalla palette, che mostra lo stato delle app (v0.6.0).
+        "group_launch",
+        "health_status",
     ];
     const PALETTE_ONLY: &[&str] = &["main_window_show", "palette_ready"];
     /// Permessi core: eventi per tutte e due; barra del titolo propria per la principale;

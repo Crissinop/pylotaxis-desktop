@@ -103,6 +103,22 @@ pub enum Error {
     #[error("scorciatoia non ammessa")]
     ShortcutInvalid,
 
+    /// Ambiente sconosciuto: ammessi sviluppo, collaudo, produzione o nessuno (v0.6.0).
+    #[error("ambiente non valido")]
+    EnvironmentInvalid,
+
+    /// Il controllo dello stato vale solo per le app web (v0.6.0).
+    #[error("controllo dello stato solo per le app web")]
+    HealthCheckWebOnly,
+
+    /// Un gruppo ha più app del massimo consentito (v0.6.0).
+    #[error("troppe app nel gruppo")]
+    GroupTooLarge,
+
+    /// La stessa app compare due volte nello stesso gruppo (v0.6.0).
+    #[error("app ripetuta nel gruppo")]
+    GroupAppDuplicate,
+
     #[error("errore di lettura del file: {0}")]
     Io(#[from] std::io::Error),
 
@@ -141,6 +157,10 @@ impl Error {
         "SECRET_VALUE_INVALID",
         "SECRET_TOO_LONG",
         "SHORTCUT_INVALID",
+        "ENVIRONMENT_INVALID",
+        "HEALTH_CHECK_WEB_ONLY",
+        "GROUP_TOO_LARGE",
+        "GROUP_APP_DUPLICATE",
         "IO_ERROR",
         "DB_ERROR",
     ];
@@ -176,6 +196,10 @@ impl Error {
             Self::SecretValueInvalid => "SECRET_VALUE_INVALID",
             Self::SecretTooLong => "SECRET_TOO_LONG",
             Self::ShortcutInvalid => "SHORTCUT_INVALID",
+            Self::EnvironmentInvalid => "ENVIRONMENT_INVALID",
+            Self::HealthCheckWebOnly => "HEALTH_CHECK_WEB_ONLY",
+            Self::GroupTooLarge => "GROUP_TOO_LARGE",
+            Self::GroupAppDuplicate => "GROUP_APP_DUPLICATE",
             Self::Io(_) => "IO_ERROR",
             Self::Sqlite(_) => "DB_ERROR",
         }
@@ -240,6 +264,10 @@ mod tests {
             Error::SecretValueInvalid,
             Error::SecretTooLong,
             Error::ShortcutInvalid,
+            Error::EnvironmentInvalid,
+            Error::HealthCheckWebOnly,
+            Error::GroupTooLarge,
+            Error::GroupAppDuplicate,
             Error::Io(std::io::Error::other("prova")),
             Error::Sqlite(rusqlite::Error::InvalidQuery),
         ]

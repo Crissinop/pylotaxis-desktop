@@ -12,7 +12,8 @@
     "lock": "Blocca",
     "lockShortcut": "Blocca subito (Ctrl+L)",
     "backToRegistry": "Torna al registro",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "close": "Chiudi"
   },
   "registry": {
     "emptyTitle": "Il registro è vuoto",
@@ -53,7 +54,10 @@
     "nameLabel": "Nome",
     "categoryLabel": "Categoria",
     "tagsLabel": "Tag",
-    "tagsHint": "Separati da virgole"
+    "tagsHint": "Separati da virgole",
+    "environmentLabel": "Ambiente",
+    "healthLabel": "Controlla se risponde",
+    "healthHint": "Una richiesta senza credenziali al massimo una volta al minuto, solo con la finestra in vista."
   },
   "category": {
     "createTitle": "Nuova categoria",
@@ -67,12 +71,18 @@
     "deleteCategoryBody": "Le app della categoria restano nel registro, senza categoria.",
     "changedTitle": "{{name}} è cambiato",
     "changedBody": "Il programma non è più quello confermato l'ultima volta. Se l'hai aggiornato tu, avvialo e conferma la nuova versione.",
-    "changedConfirm": "Avvia e conferma"
+    "changedConfirm": "Avvia e conferma",
+    "deleteGroupTitle": "Eliminare il gruppo «{{name}}»?",
+    "deleteGroupBody": "Le app restano nel registro: si elimina solo il gruppo."
   },
   "status": {
     "launched": "Avviato: {{name}}",
     "saved": "Salvato: {{name}}",
-    "deleted": "Eliminato: {{name}}"
+    "deleted": "Eliminato: {{name}}",
+    "groupLaunched_one": "Aperta {{count}} app di «{{name}}».",
+    "groupLaunched_other": "Aperte {{count}} app di «{{name}}».",
+    "groupSaved": "Gruppo «{{name}}» salvato.",
+    "groupDeleted": "Gruppo «{{name}}» eliminato."
   },
   "startup": {
     "title": "Il registro non si apre"
@@ -160,7 +170,12 @@
     "shortcutLabel": "Scorciatoia",
     "shortcutActive": "Attiva.",
     "shortcutInactive": "Non attiva: la usa già un'altra app. Scegline un'altra.",
-    "shortcutSaved": "Scorciatoia salvata."
+    "shortcutSaved": "Scorciatoia salvata.",
+    "autostartTitle": "Avvio",
+    "autostartLabel": "Avvia {{name}} all'accesso a Windows",
+    "autostartHint": "Parte nella tray, senza finestra: la scorciatoia della palette è subito disponibile.",
+    "autostartOn": "Avvio con Windows attivato.",
+    "autostartOff": "Avvio con Windows disattivato."
   },
   "keys": {
     "space": "Spazio"
@@ -189,7 +204,54 @@
     "actionLock": "Blocca",
     "actionOpen": "Apri {{name}}",
     "changed": "L'eseguibile è cambiato: avvialo dalla finestra principale per confermare.",
-    "hint": "↑ ↓ per scegliere · Invio per eseguire · Esc per chiudere"
+    "hint": "↑ ↓ per scegliere · Invio per eseguire · Esc per chiudere",
+    "group": "Gruppo",
+    "groupDetail_one": "{{count}} app",
+    "groupDetail_other": "{{count}} app"
+  },
+  "environment": {
+    "none": "Nessuno",
+    "development": "Sviluppo",
+    "test": "Collaudo",
+    "production": "Produzione"
+  },
+  "health": {
+    "pending": "In verifica",
+    "active": "Attiva",
+    "server_error": "Errore del server",
+    "unreachable": "Non raggiungibile",
+    "invalid_certificate": "Certificato non valido"
+  },
+  "groups": {
+    "title": "Gruppi di avvio",
+    "new": "Nuovo gruppo",
+    "empty": "Nessun gruppo: raccogli le app che apri insieme e avviale in un gesto.",
+    "launch": "Avvia il gruppo {{name}}",
+    "count_one": "{{count}} app",
+    "count_other": "{{count}} app",
+    "editGroup": "Modifica il gruppo {{name}}",
+    "deleteGroup": "Elimina il gruppo {{name}}",
+    "createTitle": "Nuovo gruppo",
+    "editTitle": "Modifica «{{name}}»",
+    "nameLabel": "Nome",
+    "appsLabel": "App, nell'ordine di avvio",
+    "noApps": "Nessuna app: aggiungine una dall'elenco qui sotto.",
+    "addLabel": "Aggiungi un'app",
+    "choose": "Scegli un'app",
+    "add": "Aggiungi",
+    "limit": "Al massimo {{max}} app.",
+    "moveUp": "Sposta su {{name}}",
+    "moveDown": "Sposta giù {{name}}",
+    "remove": "Togli {{name}} dal gruppo",
+    "launchTitle": "Avviare «{{name}}»?",
+    "containsProduction": "Il gruppo contiene app in produzione.",
+    "launchConfirm_one": "Avvia {{count}} app",
+    "launchConfirm_other": "Avvia {{count}} app",
+    "resultTitle": "Esito di «{{name}}»",
+    "resultLaunched_one": "Aperta {{count}} app.",
+    "resultLaunched_other": "Aperte {{count}} app.",
+    "resultChanged": "Questi eseguibili sono cambiati dall'ultima conferma: controllali e avviali uno per uno.",
+    "confirmLaunch": "Conferma e avvia"
   },
   "errors": {
     "DB_WRONG_KEY": "La chiave non apre il database, oppure il file è danneggiato.",
@@ -241,7 +303,12 @@
     "UNKNOWN": "Si è verificato un errore imprevisto.",
     "SHORTCUT_INVALID": "Scorciatoia non ammessa: scegline una dall'elenco.",
     "SHORTCUT_TAKEN": "Scorciatoia non disponibile: la usa già un'altra app. Scegline un'altra.",
-    "TRAY_UNAVAILABLE": "L'icona nell'area di notifica non è disponibile."
+    "TRAY_UNAVAILABLE": "L'icona nell'area di notifica non è disponibile.",
+    "ENVIRONMENT_INVALID": "Ambiente non valido.",
+    "HEALTH_CHECK_WEB_ONLY": "Il controllo dello stato vale solo per le app web.",
+    "GROUP_TOO_LARGE": "Un gruppo può contenere al massimo 20 app.",
+    "GROUP_APP_DUPLICATE": "La stessa app compare due volte nel gruppo.",
+    "AUTOSTART_UNAVAILABLE": "Windows non ha permesso di cambiare l'avvio all'accesso."
   },
   "footer": {
     "version": "Versione {{version}}",

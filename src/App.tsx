@@ -12,6 +12,11 @@ import { RegistryView } from './features/registry/RegistryView';
 import { secretsOf } from './features/secrets/grouping';
 import { SecretsDialog } from './features/secrets/SecretsDialog';
 import { SecurityView } from './features/security/SecurityView';
+import { GroupDialog } from './features/groups/GroupDialog';
+import { GroupLaunchDialog } from './features/groups/GroupLaunchDialog';
+import { GroupResultDialog } from './features/groups/GroupResultDialog';
+import { useHealth } from './features/health/useHealth';
+import { AutostartSettings } from './features/settings/AutostartSettings';
 import { ShortcutSettings } from './features/settings/ShortcutSettings';
 import { errorCode } from './lib/errors';
 import {
@@ -21,7 +26,14 @@ import {
   deleteCategory,
   getAppInfo,
   getLockStatus,
+  createGroup,
+  deleteGroup,
   launchApp,
+  launchGroup,
+  onGroupResult,
+  updateGroup,
+  type Group,
+  type GroupLaunchResult,
   listRegistry,
   lockNow,
   onLockChanged,
@@ -58,7 +70,23 @@ type Modal =
   | { type: 'secrets'; appId: string }
   | { type: 'createCategory' }
   | { type: 'renameCategory'; category: Category }
-  | { type: 'deleteCategory'; category: Category };
+  | { type: 'deleteCategory'; category: Category }
+  // Gruppi di avvio (v0.6.0).
+  | { type: 'createGroup' }
+  | { type: 'editGroup'; group: Group }
+  | { type: 'deleteGroup'; group: Group }
+  | { type: 'launchGroup'; group: Group };
+
+/**
+ * Esito di un gruppo con qualcosa in sospeso. Sta fuori da `Modal`: se arriva dalla palette
+ * mentre qui è aperta un'altra finestra, aspetta che si chiuda invece di sostituirla e far
+ * perdere ciò che si stava scrivendo. `at` rimonta la finestra a ogni esito nuovo. (v0.6.0)
+ */
+interface ShownResult {
+  group: Group;
+  result: GroupLaunchResult;
+  at: number;
+}
 
 const NO_MODAL: Modal = { type: 'none' };
 
@@ -108,6 +136,7 @@ export default function App() {
   const [registry, setRegistry] = useState<RegistryState>({ status: 'loading' });
   const [view, setView] = useState<View>('registry');
   const [modal, setModal] = useState<Modal>(NO_MODAL);
+  const [groupResult, setGroupResult] = useState<ShownResult | null>(null);
   const [message, setMessage] = useState('');
   const [version, setVersion] = useState<string | null>(null);
 
@@ -130,6 +159,7 @@ export default function App() {
     const now = Date.now();
     setRegistry({ status: 'loading' });
     setModal(NO_MODAL);
+    setGroupResult(null);
     setMessage('');
     setLockView((current) => ({
       status: 'ready',
@@ -198,6 +228,27 @@ export default function App() {
     };
   }, [hideForLock]);
 
+  // Esito di un gruppo avviato dalla palette con qualcosa da confermare: Rust mostra questa
+  // finestra e lo consegna qui. (v0.6.0)
+  useEffect(() => {
+    let active = true;
+    let stop: (() => void) | null = null;
+    onGroupResult(({ group, result }) => {
+      if (!active) return;
+      setMessage(t('status.groupLaunched', { count: result.launched.length, name: group.name }));
+      setGroupResult({ group, result, at: Date.now() });
+    })
+      .then((unlisten) => {
+        if (active) stop = unlisten;
+        else unlisten();
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, [t]);
+
   const ready = lockView.status === 'ready' ? lockView.lock : null;
   const locked = ready?.locked ?? false;
   const canLock = ready !== null && ready.pinSet && !ready.locked;
@@ -216,6 +267,9 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [canLock, lock]);
 
+  // Stato delle app web: solo con il registro in vista e sbloccato (v0.6.0).
+  const health = useHealth(view === 'registry' && registry.status === 'ready' && !locked);
+
   const launch = (app: RegisteredApp, acceptChanged: boolean) => {
     launchApp(app.id, acceptChanged)
       .then(() => setMessage(t('status.launched', { name: app.name })))
@@ -233,7 +287,21 @@ export default function App() {
     await reload();
   };
 
+  /** Avvia il gruppo; se qualcosa non parte, l'esito lo elenca e lo fa confermare. */
+  const runGroup = (group: Group) => {
+    setModal(NO_MODAL);
+    launchGroup(group.id)
+      .then((result) => {
+        setMessage(t('status.groupLaunched', { count: result.launched.length, name: group.name }));
+        if (result.changed.length > 0 || result.failed.length > 0) {
+          setGroupResult({ group, result, at: Date.now() });
+        }
+      })
+      .catch(report);
+  };
+
   const categories = registry.status === 'ready' ? registry.registry.categories : [];
+  const apps = registry.status === 'ready' ? registry.registry.apps : [];
   // Con il registro vuoto le azioni stanno solo al centro: un'azione primaria per area (A.8).
   const isEmpty =
     registry.status === 'ready' &&
@@ -336,6 +404,7 @@ export default function App() {
               }}
             />
             <ShortcutSettings onMessage={setMessage} />
+            <AutostartSettings onMessage={setMessage} />
           </div>
         )}
         {startupFailure === null &&
@@ -345,6 +414,11 @@ export default function App() {
             <RegistryView
               registry={registry.registry}
               onLaunch={(app) => launch(app, false)}
+              health={health}
+              onLaunchGroup={(group) => setModal({ type: 'launchGroup', group })}
+              onCreateGroup={() => setModal({ type: 'createGroup' })}
+              onEditGroup={(group) => setModal({ type: 'editGroup', group })}
+              onDeleteGroup={(group) => setModal({ type: 'deleteGroup', group })}
               onSecrets={(app) => setModal({ type: 'secrets', appId: app.id })}
               onEditApp={(app) => setModal({ type: 'editApp', app })}
               onDeleteApp={(app) => setModal({ type: 'deleteApp', app })}
@@ -425,6 +499,54 @@ export default function App() {
             setModal(NO_MODAL);
             launch(modal.app, true);
           }}
+        />
+      )}
+      {(modal.type === 'createGroup' || modal.type === 'editGroup') && (
+        <GroupDialog
+          group={modal.type === 'editGroup' ? modal.group : undefined}
+          apps={apps}
+          onCancel={() => setModal(NO_MODAL)}
+          onSubmit={(input) =>
+            complete(
+              modal.type === 'editGroup' ? updateGroup(modal.group.id, input) : createGroup(input),
+              t('status.groupSaved', { name: input.name.trim() }),
+            )
+          }
+        />
+      )}
+      {modal.type === 'deleteGroup' && (
+        <ConfirmDialog
+          title={t('confirm.deleteGroupTitle', { name: modal.group.name })}
+          body={t('confirm.deleteGroupBody')}
+          confirmLabel={t('actions.delete')}
+          destructive
+          onCancel={() => setModal(NO_MODAL)}
+          onConfirm={() => {
+            complete(
+              deleteGroup(modal.group.id),
+              t('status.groupDeleted', { name: modal.group.name }),
+            ).catch(report);
+          }}
+        />
+      )}
+      {modal.type === 'launchGroup' && (
+        <GroupLaunchDialog
+          group={modal.group}
+          apps={apps}
+          onCancel={() => setModal(NO_MODAL)}
+          onConfirm={() => runGroup(modal.group)}
+        />
+      )}
+      {modal.type === 'none' && groupResult && (
+        <GroupResultDialog
+          key={groupResult.at}
+          group={groupResult.group}
+          result={groupResult.result}
+          apps={apps}
+          onClose={() => setGroupResult(null)}
+          onConfirmChanged={(app) =>
+            launchApp(app.id, true).then(() => setMessage(t('status.launched', { name: app.name })))
+          }
         />
       )}
       {modal.type === 'createCategory' && (

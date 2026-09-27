@@ -1,11 +1,19 @@
 import { useTranslation } from 'react-i18next';
 
-import type { Category, RegisteredApp, Registry } from '../../lib/ipc';
-import { toSections } from './sections';
+import { EnvironmentBadge } from '../../components/EnvironmentBadge';
+import type { Category, Group, HealthStatus, RegisteredApp, Registry } from '../../lib/ipc';
+import { HealthBadge } from '../health/HealthBadge';
 import { countByApp } from '../secrets/grouping';
+import { toSections } from './sections';
 
 interface RegistryViewProps {
   registry: Registry;
+  /** Stato delle app con il controllo acceso (v0.6.0). */
+  health: ReadonlyMap<string, HealthStatus>;
+  onLaunchGroup: (group: Group) => void;
+  onCreateGroup: () => void;
+  onEditGroup: (group: Group) => void;
+  onDeleteGroup: (group: Group) => void;
   onLaunch: (app: RegisteredApp) => void;
   onSecrets: (app: RegisteredApp) => void;
   onEditApp: (app: RegisteredApp) => void;
@@ -19,6 +27,7 @@ interface RegistryViewProps {
 interface AppRowProps {
   app: RegisteredApp;
   secretCount: number;
+  health: HealthStatus | undefined;
   onLaunch: (app: RegisteredApp) => void;
   onSecrets: (app: RegisteredApp) => void;
   onEdit: (app: RegisteredApp) => void;
@@ -26,10 +35,11 @@ interface AppRowProps {
 }
 
 /** Riga di un'app: il nome è il pulsante di avvio, così Invio e clic fanno la stessa cosa. */
-function AppRow({ app, secretCount, onLaunch, onSecrets, onEdit, onDelete }: AppRowProps) {
+function AppRow({ app, secretCount, health, onLaunch, onSecrets, onEdit, onDelete }: AppRowProps) {
   const { t } = useTranslation();
+  // La produzione si riconosce a colpo d'occhio: filetto bronzo ed etichetta (v0.6.0).
   return (
-    <li className="app-row">
+    <li className={app.environment === 'production' ? 'app-row app-row--production' : 'app-row'}>
       <button
         type="button"
         className="app-row__launch"
@@ -39,6 +49,8 @@ function AppRow({ app, secretCount, onLaunch, onSecrets, onEdit, onDelete }: App
         <span className="app-row__name">{app.name}</span>
         <span className="app-row__meta">
           <span className="badge">{t(`registry.kind.${app.kind}`)}</span>
+          <EnvironmentBadge environment={app.environment} />
+          {app.healthCheck && <HealthBadge status={health} />}
           <span className="app-row__target">{app.target}</span>
         </span>
       </button>
@@ -83,8 +95,62 @@ function AppRow({ app, secretCount, onLaunch, onSecrets, onEdit, onDelete }: App
   );
 }
 
+interface GroupRowProps {
+  group: Group;
+  apps: ReadonlyMap<string, RegisteredApp>;
+  onLaunch: (group: Group) => void;
+  onEdit: (group: Group) => void;
+  onDelete: (group: Group) => void;
+}
+
+/** Riga di un gruppo: il nome apre la conferma con l'elenco di ciò che partirà (A.8). */
+function GroupRow({ group, apps, onLaunch, onEdit, onDelete }: GroupRowProps) {
+  const { t } = useTranslation();
+  const production = group.appIds.some((id) => apps.get(id)?.environment === 'production');
+  return (
+    <li className={production ? 'app-row app-row--production' : 'app-row'}>
+      <button
+        type="button"
+        className="app-row__launch"
+        disabled={group.appIds.length === 0}
+        onClick={() => onLaunch(group)}
+        aria-label={t('groups.launch', { name: group.name })}
+      >
+        <span className="app-row__name">{group.name}</span>
+        <span className="app-row__meta">
+          <span className="badge">{t('groups.count', { count: group.appIds.length })}</span>
+          {production && <EnvironmentBadge environment="production" />}
+        </span>
+      </button>
+      <div className="app-row__actions">
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={() => onEdit(group)}
+          aria-label={t('groups.editGroup', { name: group.name })}
+        >
+          {t('actions.edit')}
+        </button>
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={() => onDelete(group)}
+          aria-label={t('groups.deleteGroup', { name: group.name })}
+        >
+          {t('actions.delete')}
+        </button>
+      </div>
+    </li>
+  );
+}
+
 export function RegistryView({
   registry,
+  health,
+  onLaunchGroup,
+  onCreateGroup,
+  onEditGroup,
+  onDeleteGroup,
   onLaunch,
   onSecrets,
   onEditApp,
@@ -96,6 +162,7 @@ export function RegistryView({
 }: RegistryViewProps) {
   const { t } = useTranslation();
   const secretCounts = countByApp(registry.secrets);
+  const appsById = new Map(registry.apps.map((app) => [app.id, app]));
 
   if (registry.apps.length === 0 && registry.categories.length === 0) {
     return (
@@ -118,6 +185,36 @@ export function RegistryView({
 
   return (
     <div className="registry">
+      {registry.apps.length > 0 && (
+        <section aria-labelledby="groups-title">
+          <header className="section__header">
+            <h2 id="groups-title" className="section__title">
+              {t('groups.title')}
+            </h2>
+            <div className="section__actions">
+              <button type="button" className="button button--ghost" onClick={onCreateGroup}>
+                {t('groups.new')}
+              </button>
+            </div>
+          </header>
+          {registry.groups.length === 0 ? (
+            <p className="groups__empty">{t('groups.empty')}</p>
+          ) : (
+            <ul className="app-list">
+              {registry.groups.map((group) => (
+                <GroupRow
+                  key={group.id}
+                  group={group}
+                  apps={appsById}
+                  onLaunch={onLaunchGroup}
+                  onEdit={onEditGroup}
+                  onDelete={onDeleteGroup}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       {toSections(registry).map(({ category, apps }) => {
         const title = category?.name ?? t('registry.uncategorized');
         return (
@@ -152,6 +249,7 @@ export function RegistryView({
                     key={app.id}
                     app={app}
                     secretCount={secretCounts.get(app.id) ?? 0}
+                    health={health.get(app.id)}
                     onLaunch={onLaunch}
                     onSecrets={onSecrets}
                     onEdit={onEditApp}

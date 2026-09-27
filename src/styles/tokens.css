@@ -27,6 +27,9 @@
   --color-surface: #f3f5f1;
   --color-border: #7d847f;
   --color-danger: #9b2c2c;
+  /* Produzione (v0.6.0): bronzo, l'unico ambiente a colori; testo 6.12:1. */
+  --color-production: #7a4a1e;
+  --color-production-text: var(--palette-calce);
   --color-primary-bg: var(--palette-basalto);
   --color-primary-text: var(--palette-calce);
   --color-backdrop: rgb(17 21 27 / 45%);
@@ -56,6 +59,9 @@
     --color-surface: var(--palette-basalto);
     --color-border: #6b7470;
     --color-danger: #e58a7e;
+    /* Bronzo chiaro sul fondo notte; testo 7.54:1 (v0.6.0). */
+    --color-production: #d49b5c;
+    --color-production-text: var(--palette-notte);
     --color-primary-bg: var(--palette-marmo);
     --color-primary-text: var(--palette-notte);
     --color-backdrop: rgb(0 0 0 / 55%);

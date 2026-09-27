@@ -5,6 +5,8 @@
 
 pub mod db;
 mod error;
+pub mod groups;
+pub mod health;
 mod hex;
 pub mod launch;
 pub mod lock;

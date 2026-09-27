@@ -79,6 +79,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 4,
         sql: include_str!("../migrations/0004_secrets.sql"),
     },
+    // Ambienti, stato delle app, gruppi di avvio (v0.6.0).
+    Migration {
+        version: 5,
+        sql: include_str!("../migrations/0005_organization.sql"),
+    },
 ];
 
 /// Versione di schema più recente che questa build sa gestire.
@@ -343,6 +348,16 @@ mod tests {
             let labels: Vec<String> = db.secrets().unwrap().into_iter().map(|s| s.label).collect();
             let expected: &[&str] = if version >= 4 { &["Token"] } else { &[] };
             assert_eq!(labels, expected, "da v{version}");
+            // Ambienti e gruppi nascono con la migrazione 5: le app esistenti restano senza
+            // ambiente e senza controllo dello stato. (v0.6.0)
+            for app in db.registry().unwrap().apps {
+                assert_eq!(
+                    (app.environment, app.health_check),
+                    (None, false),
+                    "da v{version}"
+                );
+            }
+            assert!(db.groups().unwrap().is_empty(), "da v{version}");
             let lock = db.lock_settings().unwrap();
             assert!(!lock.pin_set && !lock.hello_enabled, "da v{version}");
             assert_eq!(lock.idle_minutes, Some(crate::lock::IDLE_DEFAULT_MINUTES));

@@ -14,6 +14,10 @@ export interface AppInfo {
 
 export type AppKind = 'executable' | 'web' | 'protocol';
 
+/** Ambienti ammessi (crates/domain/src/registry.rs); `null` vale "nessun ambiente". (v0.6.0) */
+export type Environment = 'development' | 'test' | 'production';
+export const ENVIRONMENTS: readonly Environment[] = ['development', 'test', 'production'];
+
 export interface Category {
   id: string;
   name: string;
@@ -27,6 +31,16 @@ export interface RegisteredApp {
   target: string;
   categoryId: string | null;
   tags: string[];
+  environment: Environment | null;
+  /** Controllo dello stato acceso: solo per le app web. */
+  healthCheck: boolean;
+}
+
+/** Gruppo di avvio: le app in ordine di avvio (src-tauri/src/groups.rs). (v0.6.0) */
+export interface Group {
+  id: string;
+  name: string;
+  appIds: string[];
 }
 
 /**
@@ -44,6 +58,7 @@ export interface SecretInfo {
 export interface Registry {
   categories: Category[];
   apps: RegisteredApp[];
+  groups: Group[];
   secrets: SecretInfo[];
 }
 
@@ -63,6 +78,8 @@ export interface AppInput {
   target: TargetInput;
   categoryId: string | null;
   tags: string[];
+  environment: Environment | null;
+  healthCheck: boolean;
 }
 
 export const getAppInfo = () => invoke<AppInfo>('app_info');
@@ -77,6 +94,59 @@ export const createApp = (input: AppInput) => invoke<RegisteredApp>('app_create'
 export const updateApp = (id: string, input: AppInput) =>
   invoke<RegisteredApp>('app_update', { id, input });
 export const deleteApp = (id: string) => invoke<void>('app_delete', { id });
+
+export interface GroupInput {
+  name: string;
+  appIds: string[];
+}
+
+/** Esito di un avvio di gruppo: aperte, da confermare (eseguibile cambiato), non riuscite. */
+export interface GroupLaunchResult {
+  launched: string[];
+  changed: string[];
+  failed: { id: string; code: string }[];
+}
+
+export const createGroup = (input: GroupInput) => invoke<Group>('group_create', { input });
+export const updateGroup = (id: string, input: GroupInput) =>
+  invoke<Group>('group_update', { id, input });
+export const deleteGroup = (id: string) => invoke<void>('group_delete', { id });
+export const launchGroup = (id: string) => invoke<GroupLaunchResult>('group_launch', { id });
+
+/**
+ * Esito di un gruppo avviato dalla palette con qualcosa da confermare: Rust mostra la finestra
+ * principale e glielo consegna, perché la palette non conferma nulla (src-tauri/src/groups.rs).
+ */
+export interface GroupResultEvent {
+  group: Group;
+  result: GroupLaunchResult;
+}
+
+export const GROUP_RESULT = 'group-result';
+
+export const onGroupResult = (handler: (event: GroupResultEvent) => void) =>
+  listen<GroupResultEvent>(GROUP_RESULT, (event) => handler(event.payload));
+
+/** Stato di un'app web (crates/domain/src/health.rs); `null` finché non c'è un risultato. */
+export type HealthStatus = 'active' | 'server_error' | 'unreachable' | 'invalid_certificate';
+
+export interface HealthEntry {
+  id: string;
+  status: HealthStatus | null;
+}
+
+/** Stato delle app con il controllo acceso; Rust ricontrolla quelle scadute, se in vista. */
+export const getHealth = () => invoke<HealthEntry[]>('health_status');
+
+/** Evento di Rust a ogni risultato nuovo di un controllo. */
+export const HEALTH_CHANGED = 'health-changed';
+
+export const onHealthChanged = (handler: (entry: HealthEntry) => void) =>
+  listen<HealthEntry>(HEALTH_CHANGED, (event) => handler(event.payload));
+
+/** Avvio con Windows: lo stato è quello del sistema, riletto dopo ogni cambio. */
+export const getAutostart = () => invoke<boolean>('autostart_status');
+export const setAutostart = (enabled: boolean) => invoke<boolean>('autostart_set', { enabled });
 export const launchApp = (id: string, acceptChanged: boolean) =>
   invoke<void>('app_launch', { id, acceptChanged });
 

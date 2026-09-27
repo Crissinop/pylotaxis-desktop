@@ -36,4 +36,12 @@ pub const APP_COMMANDS: &[&str] = &[
     "tray_setup",
     "main_window_show",
     "palette_ready",
+    // Organizzazione (v0.6.0): gruppi di avvio, stato delle app, avvio con Windows.
+    "group_create",
+    "group_update",
+    "group_delete",
+    "group_launch",
+    "health_status",
+    "autostart_status",
+    "autostart_set",
 ];

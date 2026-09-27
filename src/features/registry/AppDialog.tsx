@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { Dialog } from '../../components/Dialog';
 import { errorCode } from '../../lib/errors';
 import {
-  pickExecutable,
   type AppInput,
   type AppKind,
   type Category,
+  type Environment,
+  ENVIRONMENTS,
   type ExecutablePick,
+  pickExecutable,
   type RegisteredApp,
 } from '../../lib/ipc';
 import { formatTags, parseTags } from '../../lib/tags';
@@ -42,6 +44,8 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
     uri: useId(),
     category: useId(),
     tags: useId(),
+    environment: useId(),
+    health: useId(),
     error: useId(),
   };
 
@@ -52,6 +56,8 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
   const [name, setName] = useState(app?.name ?? '');
   const [categoryId, setCategoryId] = useState(app?.categoryId ?? '');
   const [tagsText, setTagsText] = useState(formatTags(app?.tags ?? []));
+  const [environment, setEnvironment] = useState<Environment | ''>(app?.environment ?? '');
+  const [healthCheck, setHealthCheck] = useState(app?.healthCheck ?? false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -82,7 +88,15 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
           : { kind, uri };
     setBusy(true);
     setError(null);
-    onSubmit({ name, target, categoryId: categoryId || null, tags: parseTags(tagsText) })
+    onSubmit({
+      name,
+      target,
+      categoryId: categoryId || null,
+      tags: parseTags(tagsText),
+      environment: environment || null,
+      // Il controllo dello stato vale solo per le app web (v0.6.0).
+      healthCheck: kind === 'web' && healthCheck,
+    })
       .catch((failure: unknown) => setError(errorCode(failure)))
       .finally(() => setBusy(false));
   };
@@ -196,6 +210,26 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
               </select>
             </div>
             <div className="field">
+              <label htmlFor={ids.environment} className="field__label">
+                {t('form.environmentLabel')}
+              </label>
+              <select
+                id={ids.environment}
+                className="field__input"
+                value={environment}
+                onChange={(event) =>
+                  setEnvironment(ENVIRONMENTS.find((code) => code === event.target.value) ?? '')
+                }
+              >
+                <option value="">{t('environment.none')}</option>
+                {ENVIRONMENTS.map((code) => (
+                  <option key={code} value={code}>
+                    {t(`environment.${code}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
               <label htmlFor={ids.tags} className="field__label">
                 {t('form.tagsLabel')}
               </label>
@@ -207,6 +241,22 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
               />
               <span className="field__hint">{t('form.tagsHint')}</span>
             </div>
+            {kind === 'web' && (
+              <div className="field">
+                <label className="field--check">
+                  <input
+                    type="checkbox"
+                    checked={healthCheck}
+                    aria-describedby={ids.health}
+                    onChange={(event) => setHealthCheck(event.target.checked)}
+                  />
+                  {t('form.healthLabel')}
+                </label>
+                <span id={ids.health} className="field__hint">
+                  {t('form.healthHint')}
+                </span>
+              </div>
+            )}
           </>
         )}
 

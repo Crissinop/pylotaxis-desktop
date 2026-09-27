@@ -15,6 +15,7 @@ use uuid::Uuid;
 
 use crate::Error;
 use crate::db::Database;
+use crate::groups::Group;
 
 /// Limiti degli input: abbastanza larghi per l'uso reale, abbastanza stretti da non
 /// rompere l'impaginazione né accettare incollati accidentali. (v0.2.0)
@@ -65,6 +66,35 @@ impl Target {
     }
 }
 
+/// Ambiente di un'app (v0.6.0). Un insieme chiuso, così la produzione ha un segnale che non
+/// si confonde con altri (A.8); `None` per le app che non ne hanno uno.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Environment {
+    Development,
+    Test,
+    Production,
+}
+
+impl Environment {
+    /// Codice stabile, lo stesso nel database e verso il frontend.
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::Development => "development",
+            Self::Test => "test",
+            Self::Production => "production",
+        }
+    }
+
+    pub fn from_code(code: &str) -> Result<Self, Error> {
+        match code {
+            "development" => Ok(Self::Development),
+            "test" => Ok(Self::Test),
+            "production" => Ok(Self::Production),
+            _ => Err(Error::EnvironmentInvalid),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct App {
     pub id: Uuid,
@@ -72,6 +102,9 @@ pub struct App {
     pub target: Target,
     pub category_id: Option<Uuid>,
     pub tags: Vec<String>,
+    /// Ambiente e controllo dello stato (v0.6.0).
+    pub environment: Option<Environment>,
+    pub health_check: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,6 +118,8 @@ pub struct Category {
 pub struct Registry {
     pub categories: Vec<Category>,
     pub apps: Vec<App>,
+    /// Gruppi di avvio (v0.6.0).
+    pub groups: Vec<Group>,
 }
 
 /// Dati di un'app da creare o aggiornare.
@@ -94,6 +129,8 @@ pub struct AppInput {
     pub target: Target,
     pub category_id: Option<Uuid>,
     pub tags: Vec<String>,
+    pub environment: Option<Environment>,
+    pub health_check: bool,
 }
 
 /// Eseguibile scelto dall'utente e già ispezionato.
@@ -253,7 +290,12 @@ fn parse_optional_uuid(row: &Row<'_>, index: usize) -> rusqlite::Result<Option<U
     .transpose()
 }
 
-const APP_COLUMNS: &str = "id, name, kind, target, sha256, category_id";
+const APP_COLUMNS: &str = "id, name, kind, target, sha256, category_id, environment, health_check";
+
+/// Stessa app nei diversi ambienti una accanto all'altra: senza ambiente, sviluppo, collaudo,
+/// produzione (v0.6.0).
+const APP_ORDER: &str = "name COLLATE NOCASE, CASE environment WHEN 'development' THEN 1 \
+     WHEN 'test' THEN 2 WHEN 'production' THEN 3 ELSE 0 END";
 
 /// Legge una riga di `apps`; i tag si aggiungono dopo.
 fn app_from_row(row: &Row<'_>) -> rusqlite::Result<App> {
@@ -281,6 +323,19 @@ fn app_from_row(row: &Row<'_>) -> rusqlite::Result<App> {
         target,
         category_id: parse_optional_uuid(row, 5)?,
         tags: Vec::new(),
+        environment: row
+            .get::<_, Option<String>>(6)?
+            .map(|code| {
+                Environment::from_code(&code).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        6,
+                        Type::Text,
+                        format!("ambiente sconosciuto: {code}").into(),
+                    )
+                })
+            })
+            .transpose()?,
+        health_check: row.get::<_, i64>(7)? != 0,
     })
 }
 
@@ -313,14 +368,19 @@ impl Database {
         let mut apps = self
             .conn
             .prepare(&format!(
-                "SELECT {APP_COLUMNS} FROM apps ORDER BY name COLLATE NOCASE"
+                "SELECT {APP_COLUMNS} FROM apps ORDER BY {APP_ORDER}"
             ))?
             .query_map([], app_from_row)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         for app in &mut apps {
             app.tags = tags.remove(&app.id).unwrap_or_default();
         }
-        Ok(Registry { categories, apps })
+        let groups = self.groups()?;
+        Ok(Registry {
+            categories,
+            apps,
+            groups,
+        })
     }
 
     pub fn app(&self, id: Uuid) -> Result<App, Error> {
@@ -358,24 +418,33 @@ impl Database {
         let target = validate_target(&input.target)?;
         let tags = validate_tags(&input.tags)?;
         let category = input.category_id.map(|c| c.to_string());
+        // Il controllo dello stato è una richiesta HTTP: ha senso solo per le app web. (v0.6.0)
+        if input.health_check && !matches!(target, Target::Web { .. }) {
+            return Err(Error::HealthCheckWebOnly);
+        }
+        let environment = input.environment.map(Environment::code);
 
         let tx = self.conn.unchecked_transaction()?;
         let changed = if is_new {
             tx.execute(
-                "INSERT INTO apps (id, name, kind, target, sha256, category_id)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                "INSERT INTO apps (id, name, kind, target, sha256, category_id, environment,
+                                   health_check)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 params![
                     id.to_string(),
                     name,
                     target.kind(),
                     target_text(&target)?,
                     target_sha256(&target),
-                    category
+                    category,
+                    environment,
+                    input.health_check
                 ],
             )?
         } else {
             tx.execute(
-                "UPDATE apps SET name = ?2, kind = ?3, target = ?4, sha256 = ?5, category_id = ?6
+                "UPDATE apps SET name = ?2, kind = ?3, target = ?4, sha256 = ?5, category_id = ?6,
+                                 environment = ?7, health_check = ?8
                  WHERE id = ?1",
                 params![
                     id.to_string(),
@@ -383,7 +452,9 @@ impl Database {
                     target.kind(),
                     target_text(&target)?,
                     target_sha256(&target),
-                    category
+                    category,
+                    environment,
+                    input.health_check
                 ],
             )?
         };
@@ -495,6 +566,8 @@ pub(crate) mod tests {
             },
             category_id: None,
             tags: Vec::new(),
+            environment: None,
+            health_check: false,
         }
     }
 
@@ -631,6 +704,72 @@ pub(crate) mod tests {
         ));
     }
 
+    /// Lo stesso nome una volta per ambiente; "senza ambiente" vale come un ambiente a sé.
+    /// Le varianti di una stessa app stanno una accanto all'altra. (v0.6.0)
+    #[test]
+    fn a_name_is_unique_per_environment() {
+        use Environment::{Development, Production, Test};
+        let (_dir, db) = open_db();
+        let with = |name: &str, environment| AppInput {
+            environment,
+            ..web(name)
+        };
+        for environment in [Some(Production), None, Some(Test), Some(Development)] {
+            db.create_app(&with("Portale", environment)).unwrap();
+        }
+        for environment in [None, Some(Development), Some(Production)] {
+            assert!(
+                matches!(
+                    db.create_app(&with("PORTALE", environment)),
+                    Err(Error::NameDuplicate)
+                ),
+                "{environment:?}"
+            );
+        }
+        let order: Vec<_> = db
+            .registry()
+            .unwrap()
+            .apps
+            .iter()
+            .map(|a| a.environment)
+            .collect();
+        assert_eq!(
+            order,
+            [None, Some(Development), Some(Test), Some(Production)]
+        );
+        assert!(matches!(
+            Environment::from_code("prod"),
+            Err(Error::EnvironmentInvalid)
+        ));
+    }
+
+    /// Il controllo dello stato è una richiesta HTTP: solo per le app web, e si rilegge com'è
+    /// stato scritto. (v0.6.0)
+    #[test]
+    fn the_health_check_is_only_for_web_apps() {
+        let (_dir, db) = open_db();
+        let app = db
+            .create_app(&AppInput {
+                health_check: true,
+                environment: Some(Environment::Test),
+                ..web("Stato")
+            })
+            .unwrap();
+        assert!(app.health_check);
+        assert_eq!(app.environment, Some(Environment::Test));
+        let protocol = AppInput {
+            target: Target::Protocol {
+                uri: "vscode://file".into(),
+            },
+            health_check: true,
+            ..web("Protocollo")
+        };
+        assert!(matches!(
+            db.create_app(&protocol),
+            Err(Error::HealthCheckWebOnly)
+        ));
+    }
+
     #[test]
     fn names_are_unique_regardless_of_case() {
         let (_dir, db) = open_db();
@@ -674,6 +813,8 @@ pub(crate) mod tests {
                 },
                 category_id: None,
                 tags: Vec::new(),
+                environment: None,
+                health_check: false,
             })
             .unwrap();
         assert_eq!(

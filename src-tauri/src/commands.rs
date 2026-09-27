@@ -6,7 +6,9 @@
 //! lente (finestra di scelta, impronta di un eseguibile) passano da `spawn_blocking`.
 
 use domain::launch::{LaunchPlan, plan_launch};
-use domain::registry::{App, AppInput, Category, Registry, Target, inspect_executable};
+use domain::registry::{
+    App, AppInput, Category, Environment, Registry, Target, inspect_executable,
+};
 use domain::secrets::SecretInfo;
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
@@ -16,6 +18,7 @@ use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
 use crate::errors::CommandError;
+use crate::groups::GroupDto;
 use crate::secrets::SecretDto;
 use crate::state::{AppState, PendingPick, TargetInput, parse_id, resolve_target};
 
@@ -48,6 +51,9 @@ pub struct AppDto {
     target: String,
     category_id: Option<String>,
     tags: Vec<String>,
+    /// Ambiente (`development`, `test`, `production`) e controllo dello stato (v0.6.0).
+    environment: Option<&'static str>,
+    health_check: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -55,6 +61,8 @@ pub struct AppDto {
 pub struct RegistryDto {
     categories: Vec<CategoryDto>,
     apps: Vec<AppDto>,
+    /// Gruppi di avvio, con le app in ordine (v0.6.0).
+    groups: Vec<GroupDto>,
     /// Segreti di tutte le app, con il loro `appId`: solo i dati descrittivi (v0.4.0).
     secrets: Vec<SecretDto>,
 }
@@ -74,6 +82,11 @@ pub struct AppInputDto {
     target: TargetInput,
     category_id: Option<String>,
     tags: Vec<String>,
+    /// Facoltativi: assenti valgono "nessun ambiente" e "controllo spento" (v0.6.0).
+    #[serde(default)]
+    environment: Option<String>,
+    #[serde(default)]
+    health_check: bool,
 }
 
 impl From<Category> for CategoryDto {
@@ -99,6 +112,8 @@ impl From<App> for AppDto {
             target,
             category_id: app.category_id.map(|id| id.to_string()),
             tags: app.tags,
+            environment: app.environment.map(Environment::code),
+            health_check: app.health_check,
         }
     }
 }
@@ -108,6 +123,7 @@ impl RegistryDto {
         Self {
             categories: registry.categories.into_iter().map(Into::into).collect(),
             apps: registry.apps.into_iter().map(Into::into).collect(),
+            groups: registry.groups.into_iter().map(Into::into).collect(),
             secrets: secrets.into_iter().map(Into::into).collect(),
         }
     }
@@ -126,11 +142,18 @@ fn to_input(
 ) -> Result<AppInput, CommandError> {
     let target = resolve_target(dto.target, &mut *state.pick()?, existing)?;
     let category_id = dto.category_id.as_deref().map(parse_id).transpose()?;
+    let environment = dto
+        .environment
+        .as_deref()
+        .map(Environment::from_code)
+        .transpose()?;
     Ok(AppInput {
         name: dto.name,
         target,
         category_id,
         tags: dto.tags,
+        environment,
+        health_check: dto.health_check,
     })
 }
 
@@ -262,6 +285,17 @@ pub async fn app_launch<R: Runtime>(
     accept_changed: bool,
 ) -> Result<(), CommandError> {
     let id = parse_id(&id)?;
+    launch_app(&app, &state, id, accept_changed).await
+}
+
+/// Unica funzione di avvio (A.7.3): app singola, palette e gruppi passano tutti da qui, con
+/// la verifica dell'impronta e la nuova conferma. (v0.6.0, estratta da `app_launch`)
+pub(crate) async fn launch_app<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &AppState,
+    id: Uuid,
+    accept_changed: bool,
+) -> Result<(), CommandError> {
     let entry = state.with_db(|db| Ok(db.app(id)?))?;
     let planned = spawn_blocking(move || plan_launch(&entry, accept_changed))
         .await
@@ -321,10 +355,21 @@ mod tests {
             target: String::new(),
             category_id: None,
             tags: Vec::new(),
+            environment: None,
+            health_check: false,
         };
         assert_eq!(
             keys(&serde_json::to_value(app).unwrap()),
-            ["categoryId", "id", "kind", "name", "tags", "target"]
+            [
+                "categoryId",
+                "environment",
+                "healthCheck",
+                "id",
+                "kind",
+                "name",
+                "tags",
+                "target"
+            ]
         );
         let pick = PickDto {
             token: String::new(),

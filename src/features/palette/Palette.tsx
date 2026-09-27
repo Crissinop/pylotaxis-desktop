@@ -1,29 +1,54 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useEffect, useId, useRef, useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
+import { EnvironmentBadge } from '../../components/EnvironmentBadge';
 import { APP_NAME } from '../../constants/app';
 import { errorCode } from '../../lib/errors';
 import {
   copySecret,
   launchApp,
+  launchGroup,
   listRegistry,
   lockNow,
   onLockChanged,
   onPaletteOpened,
   paletteReady,
   showMainWindow,
+  type Environment,
+  type HealthStatus,
   type Registry,
 } from '../../lib/ipc';
+import { useHealth } from '../health/useHealth';
 import { buildEntries, rank, type PaletteEntry } from './ranking';
 
 const hide = () => void getCurrentWindow().hide();
 
-/** Riga di dettaglio di una voce: che cos'è e dove porta. */
-function detail(entry: PaletteEntry, t: (key: string) => string): string {
-  if (entry.kind === 'app') return `${t(`registry.kind.${entry.app.kind}`)} · ${entry.app.target}`;
+/** Riga di dettaglio di una voce: che cos'è, com'è (stato) e dove porta. */
+function detail(
+  entry: PaletteEntry,
+  t: TFunction,
+  health: ReadonlyMap<string, HealthStatus>,
+): string {
+  if (entry.kind === 'app') {
+    const status = entry.app.healthCheck ? health.get(entry.app.id) : undefined;
+    return [
+      t(`registry.kind.${entry.app.kind}`),
+      ...(status ? [t(`health.${status}`)] : []),
+      entry.app.target,
+    ].join(' · ');
+  }
+  if (entry.kind === 'group') return t('palette.groupDetail', { count: entry.apps.length });
   if (entry.kind === 'secret') return entry.secret.username ?? t('palette.kind.secret');
   return t('palette.kind.action');
+}
+
+/** Ambiente da mostrare accanto al titolo; per un gruppo, la produzione se ne contiene. */
+function environmentOf(entry: PaletteEntry): Environment | null {
+  if (entry.kind === 'app' || entry.kind === 'secret') return entry.app.environment;
+  if (entry.kind === 'group') return entry.production ? 'production' : null;
+  return null;
 }
 
 /**
@@ -41,6 +66,7 @@ export function Palette() {
   const [active, setActive] = useState(0);
   const [preselect, setPreselect] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const health = useHealth(registry !== null);
 
   useEffect(() => {
     let mounted = true;
@@ -80,6 +106,12 @@ export function Palette() {
     ? buildEntries(registry, {
         lock: t('palette.actionLock'),
         open: t('palette.actionOpen', { name: APP_NAME }),
+        group: t('palette.group'),
+        environments: {
+          development: t('environment.development'),
+          test: t('environment.test'),
+          production: t('environment.production'),
+        },
       })
     : [];
   const results = rank(entries, query);
@@ -96,6 +128,17 @@ export function Palette() {
   const run = (entry: PaletteEntry | undefined) => {
     if (!entry) return;
     setError(null);
+    const fail = (failure: unknown) => {
+      const code = errorCode(failure);
+      if (code === 'LOCKED') hide();
+      else setError(code === 'HASH_MISMATCH' ? 'palette.changed' : `errors.${code}`);
+    };
+    // Un gruppo si apre con Invio e la palette si chiude. Se qualcosa non parte, Rust porta
+    // l'esito nella finestra principale, dove lo si conferma (v0.6.0).
+    if (entry.kind === 'group') {
+      launchGroup(entry.group.id).then(hide).catch(fail);
+      return;
+    }
     const request =
       entry.kind === 'app'
         ? launchApp(entry.app.id, false)
@@ -104,11 +147,7 @@ export function Palette() {
           : entry.action === 'lock'
             ? lockNow()
             : showMainWindow();
-    request.then(hide).catch((failure: unknown) => {
-      const code = errorCode(failure);
-      if (code === 'LOCKED') hide();
-      else setError(code === 'HASH_MISMATCH' ? 'palette.changed' : `errors.${code}`);
-    });
+    request.then(hide).catch(fail);
   };
 
   const optionId = (index: number) => `${ids.list}-${index}`;
@@ -154,8 +193,11 @@ export function Palette() {
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => run(entry)}
           >
-            <span className="palette__title">{entry.title}</span>
-            <span className="palette__detail">{detail(entry, t)}</span>
+            <span className="palette__title">
+              {entry.title}
+              <EnvironmentBadge environment={environmentOf(entry)} />
+            </span>
+            <span className="palette__detail">{detail(entry, t, health)}</span>
           </li>
         ))}
       </ul>

@@ -104,6 +104,21 @@ le impostazioni lo dicono e resta attiva la precedente. Con la barra propria non
 Windows 11 sopra il pulsante Ingrandisci. Sulla tastiera italiana AltGr equivale a Ctrl+Alt, quindi
 anche AltGr+Spazio apre la palette: in quel caso conviene Ctrl+Maiusc+Spazio.
 
+## Organizzazione
+
+Dalla v0.6.0 le app hanno un ambiente, si raccolgono in gruppi e, se lo chiedi, mostrano se rispondono.
+
+| Cosa              | Come                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ambienti          | Nessuno, sviluppo, collaudo o produzione, nella scheda dell'app. Lo stesso nome può esistere una volta per ambiente. La **produzione** porta l'etichetta PRODUZIONE e un filetto bronzo, ovunque compaia: elenco, palette, gruppi, finestre di conferma                                                                                                                                                    |
+| Gruppi di avvio   | Un nome e fino a 20 app in ordine di avvio. Dalla finestra principale si vede l'elenco prima di avviare; dalla palette ("Gruppo · Nome") parte con Invio. Un eseguibile cambiato non parte in blocco: si conferma uno per uno nell'esito, che compare nella finestra principale anche quando il gruppo parte dalla palette                                                                                 |
+| Stato delle app   | Solo per le app web, acceso app per app (spento per default). Una richiesta senza credenziali né cookie, senza seguire reindirizzamenti e senza proxy, al massimo una volta al minuto per app e solo con la finestra in vista; mai da bloccata. Esiti: attiva (risposta sotto 500), errore del server, non raggiungibile, certificato non valido. Il TLS è quello di Windows, con i certificati di sistema |
+| Avvio con Windows | In **Impostazioni**, spento per default. All'accesso l'app parte nella tray, senza finestra                                                                                                                                                                                                                                                                                                                |
+
+La migrazione 0005 aggiunge ambienti e gruppi: dopo il primo avvio della v0.6.0 le build precedenti non
+aprono più il registro. Prima dell'aggiornamento conviene copiare `registry.db`. Dietro un proxy
+aziendale le app esterne possono risultare non raggiungibili: il controllo si collega direttamente.
+
 ## Struttura
 
 ```text
@@ -119,6 +134,9 @@ src-tauri/            Guscio Tauri: comandi sottili, capability, configurazione,
   src/shortcut.rs     Scorciatoia globale, con ritorno alla precedente se Windows rifiuta
   src/tray.rs         Icona nella tray, menu, chiusura verso la tray
   src/links.rs        Link diretti: forma esatta, mai un avvio senza Invio
+  src/groups.rs       Gruppi di avvio: ogni app passa dall'unica funzione di avvio
+  src/health.rs       Stato delle app web: richieste solo con la finestra in vista
+  src/autostart.rs    Avvio con Windows, stato letto dal sistema
   capabilities/       Una capability per finestra (principale e palette), con elenchi esatti
 src/                  Interfaccia React: presenta, non decide
   features/registry/  Elenco, modulo di inserimento e sezioni per categoria
@@ -126,8 +144,10 @@ src/                  Interfaccia React: presenta, non decide
   features/security/  Impostazioni di sicurezza e finestra del PIN
   features/secrets/   Segreti di un'app: elenco, modulo in sola scrittura, copia
   features/palette/   Palette di comando e sua classifica (funzione pura, con test)
-  features/settings/  Scelta della scorciatoia
-  components/         Simbolo e controlli della barra del titolo
+  features/settings/  Scorciatoia e avvio con Windows
+  features/groups/    Gruppi: modulo, conferma, esito; ordine come funzioni pure
+  features/health/    Stato delle app web
+  components/         Simbolo, controlli della barra del titolo, etichetta dell'ambiente
   lib/                Ponte verso i comandi Rust, codici d'errore, tag
   i18n/               Italiano (riferimento) e inglese, con test di parità
   styles/tokens.css   Token dell'identità: unica fonte di colori e tipografia

@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::clipboard::ClipboardState;
 use crate::errors::CommandError;
+use crate::health::HealthState;
 use crate::keystore::KeyStore;
 use crate::lock::LockState;
 use crate::palette::PaletteState;
@@ -39,6 +40,8 @@ pub struct AppState {
     /// Scorciatoia della palette e aperture in attesa della sua pagina (v0.5.0).
     pub shortcut: ShortcutState,
     pub palette: PaletteState,
+    /// Ultimo stato delle app web con il controllo acceso, solo in memoria (v0.6.0).
+    pub health: HealthState,
 }
 
 impl AppState {
@@ -62,6 +65,7 @@ impl AppState {
             clipboard: ClipboardState::default(),
             shortcut: ShortcutState::default(),
             palette: PaletteState::default(),
+            health: HealthState::default(),
         }
     }
 
@@ -255,6 +259,8 @@ mod tests {
             },
             category_id: None,
             tags: Vec::new(),
+            environment: None,
+            health_check: false,
         };
         let keep = || TargetInput::Executable { pick_token: None };
         assert!(resolve_target(keep(), &mut None, None).is_err());

@@ -12,7 +12,8 @@
     "lock": "Lock",
     "lockShortcut": "Lock now (Ctrl+L)",
     "backToRegistry": "Back to the registry",
-    "settings": "Settings"
+    "settings": "Settings",
+    "close": "Close"
   },
   "registry": {
     "emptyTitle": "The registry is empty",
@@ -53,7 +54,10 @@
     "nameLabel": "Name",
     "categoryLabel": "Category",
     "tagsLabel": "Tags",
-    "tagsHint": "Separated by commas"
+    "tagsHint": "Separated by commas",
+    "environmentLabel": "Environment",
+    "healthLabel": "Check whether it responds",
+    "healthHint": "A request without credentials at most once a minute, only while the window is in view."
   },
   "category": {
     "createTitle": "New category",
@@ -67,12 +71,18 @@
     "deleteCategoryBody": "The apps in this category stay in the registry, without a category.",
     "changedTitle": "{{name}} has changed",
     "changedBody": "The program is no longer the one you confirmed last time. If you updated it yourself, launch it and confirm the new version.",
-    "changedConfirm": "Launch and confirm"
+    "changedConfirm": "Launch and confirm",
+    "deleteGroupTitle": "Delete the “{{name}}” group?",
+    "deleteGroupBody": "The apps stay in the registry: only the group is deleted."
   },
   "status": {
     "launched": "Launched: {{name}}",
     "saved": "Saved: {{name}}",
-    "deleted": "Deleted: {{name}}"
+    "deleted": "Deleted: {{name}}",
+    "groupLaunched_one": "Opened {{count}} app from “{{name}}”.",
+    "groupLaunched_other": "Opened {{count}} apps from “{{name}}”.",
+    "groupSaved": "Group “{{name}}” saved.",
+    "groupDeleted": "Group “{{name}}” deleted."
   },
   "startup": {
     "title": "The registry cannot be opened"
@@ -160,7 +170,12 @@
     "shortcutLabel": "Shortcut",
     "shortcutActive": "Active.",
     "shortcutInactive": "Not active: another app already uses it. Choose a different one.",
-    "shortcutSaved": "Shortcut saved."
+    "shortcutSaved": "Shortcut saved.",
+    "autostartTitle": "Startup",
+    "autostartLabel": "Start {{name}} when you sign in to Windows",
+    "autostartHint": "It starts in the tray, without a window: the palette shortcut is ready right away.",
+    "autostartOn": "Start with Windows turned on.",
+    "autostartOff": "Start with Windows turned off."
   },
   "keys": {
     "space": "Space"
@@ -189,7 +204,54 @@
     "actionLock": "Lock",
     "actionOpen": "Open {{name}}",
     "changed": "The executable has changed: launch it from the main window to confirm.",
-    "hint": "↑ ↓ to choose · Enter to run · Esc to close"
+    "hint": "↑ ↓ to choose · Enter to run · Esc to close",
+    "group": "Group",
+    "groupDetail_one": "{{count}} app",
+    "groupDetail_other": "{{count}} apps"
+  },
+  "environment": {
+    "none": "None",
+    "development": "Development",
+    "test": "Test",
+    "production": "Production"
+  },
+  "health": {
+    "pending": "Checking",
+    "active": "Active",
+    "server_error": "Server error",
+    "unreachable": "Unreachable",
+    "invalid_certificate": "Invalid certificate"
+  },
+  "groups": {
+    "title": "Launch groups",
+    "new": "New group",
+    "empty": "No groups yet: gather the apps you open together and launch them in one go.",
+    "launch": "Launch the {{name}} group",
+    "count_one": "{{count}} app",
+    "count_other": "{{count}} apps",
+    "editGroup": "Edit the {{name}} group",
+    "deleteGroup": "Delete the {{name}} group",
+    "createTitle": "New group",
+    "editTitle": "Edit “{{name}}”",
+    "nameLabel": "Name",
+    "appsLabel": "Apps, in launch order",
+    "noApps": "No apps yet: add one from the list below.",
+    "addLabel": "Add an app",
+    "choose": "Choose an app",
+    "add": "Add",
+    "limit": "At most {{max}} apps.",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "remove": "Remove {{name}} from the group",
+    "launchTitle": "Launch “{{name}}”?",
+    "containsProduction": "The group contains production apps.",
+    "launchConfirm_one": "Launch {{count}} app",
+    "launchConfirm_other": "Launch {{count}} apps",
+    "resultTitle": "“{{name}}” results",
+    "resultLaunched_one": "Opened {{count}} app.",
+    "resultLaunched_other": "Opened {{count}} apps.",
+    "resultChanged": "These executables changed since they were last confirmed: check them and launch them one by one.",
+    "confirmLaunch": "Confirm and launch"
   },
   "errors": {
     "DB_WRONG_KEY": "The key does not open the database, or the file is damaged.",
@@ -241,7 +303,12 @@
     "UNKNOWN": "An unexpected error occurred.",
     "SHORTCUT_INVALID": "Shortcut not allowed: choose one from the list.",
     "SHORTCUT_TAKEN": "Shortcut not available: another app already uses it. Choose a different one.",
-    "TRAY_UNAVAILABLE": "The notification area icon is not available."
+    "TRAY_UNAVAILABLE": "The notification area icon is not available.",
+    "ENVIRONMENT_INVALID": "Invalid environment.",
+    "HEALTH_CHECK_WEB_ONLY": "Status checks only apply to web apps.",
+    "GROUP_TOO_LARGE": "A group can hold at most 20 apps.",
+    "GROUP_APP_DUPLICATE": "The same app appears twice in the group.",
+    "AUTOSTART_UNAVAILABLE": "Windows did not allow changing the sign-in startup."
   },
   "footer": {
     "version": "Version {{version}}",

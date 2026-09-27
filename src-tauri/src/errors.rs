@@ -36,6 +36,8 @@ impl CommandError {
     pub const SHORTCUT_TAKEN: Self = Self::new("SHORTCUT_TAKEN");
     /// L'icona nella tray non si crea: area di notifica non disponibile (v0.5.0).
     pub const TRAY_UNAVAILABLE: Self = Self::new("TRAY_UNAVAILABLE");
+    /// Windows non legge o non scrive la voce di avvio all'accesso (v0.6.0).
+    pub const AUTOSTART_UNAVAILABLE: Self = Self::new("AUTOSTART_UNAVAILABLE");
 
     const fn new(code: &'static str) -> Self {
         Self { code }
@@ -66,6 +68,7 @@ pub const SHELL_CODES: &[&str] = &[
     CommandError::CLIPBOARD_UNAVAILABLE.code,
     CommandError::SHORTCUT_TAKEN.code,
     CommandError::TRAY_UNAVAILABLE.code,
+    CommandError::AUTOSTART_UNAVAILABLE.code,
 ];
 
 impl From<domain::Error> for CommandError {

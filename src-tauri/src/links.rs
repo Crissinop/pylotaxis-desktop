@@ -160,6 +160,8 @@ mod tests {
                 },
                 category_id: None,
                 tags: Vec::new(),
+                environment: None,
+                health_check: false,
             })
             .unwrap();
         if pin {
