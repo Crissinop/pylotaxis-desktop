@@ -19,8 +19,9 @@ use crate::lock;
 use crate::platform;
 use crate::state::AppState;
 
-/// Etichetta della finestra principale in tauri.conf.json: il prompt di Hello si lega a lei.
-const MAIN_WINDOW: &str = "main";
+/// Etichetta della finestra principale in tauri.conf.json: il prompt di Hello e gli appunti
+/// si legano a lei.
+pub(crate) const MAIN_WINDOW: &str = "main";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -45,8 +46,8 @@ impl LockStatusDto {
     }
 }
 
-/// Ora in millisecondi Unix, per l'attesa dopo i tentativi falliti.
-fn now_ms() -> i64 {
+/// Ora in millisecondi Unix, per l'attesa dopo i tentativi falliti e le date dei segreti.
+pub(crate) fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |elapsed| {

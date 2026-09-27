@@ -7,6 +7,7 @@
 
 use domain::launch::{LaunchPlan, plan_launch};
 use domain::registry::{App, AppInput, Category, Registry, Target, inspect_executable};
+use domain::secrets::SecretInfo;
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
 use tauri::{AppHandle, Runtime, State};
@@ -15,6 +16,7 @@ use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
 use crate::errors::CommandError;
+use crate::secrets::SecretDto;
 use crate::state::{AppState, PendingPick, TargetInput, parse_id, resolve_target};
 
 /// Lunghezza massima dei testi dell'interfaccia passati alla finestra di sistema.
@@ -53,6 +55,8 @@ pub struct AppDto {
 pub struct RegistryDto {
     categories: Vec<CategoryDto>,
     apps: Vec<AppDto>,
+    /// Segreti di tutte le app, con il loro `appId`: solo i dati descrittivi (v0.4.0).
+    secrets: Vec<SecretDto>,
 }
 
 #[derive(Debug, Serialize)]
@@ -99,11 +103,12 @@ impl From<App> for AppDto {
     }
 }
 
-impl From<Registry> for RegistryDto {
-    fn from(registry: Registry) -> Self {
+impl RegistryDto {
+    fn new(registry: Registry, secrets: Vec<SecretInfo>) -> Self {
         Self {
             categories: registry.categories.into_iter().map(Into::into).collect(),
             apps: registry.apps.into_iter().map(Into::into).collect(),
+            secrets: secrets.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -139,7 +144,7 @@ pub fn app_info() -> AppInfo {
 
 #[tauri::command]
 pub async fn registry_list(state: State<'_, AppState>) -> Result<RegistryDto, CommandError> {
-    state.with_db(|db| Ok(db.registry()?.into()))
+    state.with_db(|db| Ok(RegistryDto::new(db.registry()?, db.secrets()?)))
 }
 
 #[tauri::command]
@@ -234,7 +239,17 @@ pub async fn app_update(
 #[tauri::command]
 pub async fn app_delete(state: State<'_, AppState>, id: String) -> Result<(), CommandError> {
     let id = parse_id(&id)?;
-    state.with_db(|db| Ok(db.delete_app(id)?))
+    // Le righe dei segreti le elimina il database (CASCADE); le credenziali si eliminano dopo,
+    // e quelle che non si eliminano le ritrova la pulizia all'avvio (v0.4.0).
+    let secrets = state.with_db(|db| {
+        let secrets = db.secret_ids_of_app(id)?;
+        db.delete_app(id)?;
+        Ok(secrets)
+    })?;
+    for secret in secrets {
+        let _ = state.vault.remove(secret);
+    }
+    Ok(())
 }
 
 /// Avvia un'app registrata, per id. Un eseguibile cambiato dall'ultima conferma risponde

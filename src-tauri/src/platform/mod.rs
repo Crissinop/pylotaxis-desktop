@@ -11,11 +11,13 @@ mod win;
 
 #[cfg(not(windows))]
 pub use other::{
-    hello_availability, hello_cancel_pending, hello_verify, idle_ms, session_locked, window_owner,
+    clipboard_clear_if, clipboard_copy_private, hello_availability, hello_cancel_pending,
+    hello_verify, idle_ms, session_locked, window_owner,
 };
 #[cfg(windows)]
 pub use win::{
-    hello_availability, hello_cancel_pending, hello_verify, idle_ms, session_locked, window_owner,
+    clipboard_clear_if, clipboard_copy_private, hello_availability, hello_cancel_pending,
+    hello_verify, idle_ms, session_locked, window_owner,
 };
 
 use crate::errors::CommandError;

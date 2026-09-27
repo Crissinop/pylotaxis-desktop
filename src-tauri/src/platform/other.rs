@@ -26,3 +26,10 @@ pub fn idle_ms() -> Option<u64> {
 pub fn session_locked() -> Option<bool> {
     None
 }
+
+/// Gli appunti privati esistono solo su Windows (v0.4.0).
+pub fn clipboard_copy_private(_owner: usize, _text: &str) -> Result<u32, CommandError> {
+    Err(CommandError::CLIPBOARD_UNAVAILABLE)
+}
+
+pub fn clipboard_clear_if(_sequence: u32) {}

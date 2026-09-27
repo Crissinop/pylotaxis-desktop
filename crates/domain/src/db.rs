@@ -75,6 +75,10 @@ const MIGRATIONS: &[Migration] = &[
         version: 3,
         sql: include_str!("../migrations/0003_lock.sql"),
     },
+    Migration {
+        version: 4,
+        sql: include_str!("../migrations/0004_secrets.sql"),
+    },
 ];
 
 /// Versione di schema più recente che questa build sa gestire.
@@ -297,6 +301,18 @@ mod tests {
                 [],
             )
             .unwrap();
+            conn.execute(
+                "INSERT INTO apps (id, name, kind, target) VALUES ('0190a000-0000-7000-8000-000000000002', 'Portale', 'web', 'https://example.com/')",
+                [],
+            )
+            .unwrap();
+        }
+        if version >= 4 {
+            conn.execute(
+                "INSERT INTO secrets (id, app_id, label, created_ms, updated_ms) VALUES ('0190a000-0000-7000-8000-000000000003', '0190a000-0000-7000-8000-000000000002', 'Token', 1, 1)",
+                [],
+            )
+            .unwrap();
         }
     }
 
@@ -321,7 +337,12 @@ mod tests {
                     .map(|c| c.name)
                     .collect();
                 assert_eq!(names, ["Lavoro"], "da v{version}");
+                assert_eq!(db.registry().unwrap().apps.len(), 1, "da v{version}");
             }
+            // I segreti nascono con la migrazione 4: prima di lei non ce ne sono.
+            let labels: Vec<String> = db.secrets().unwrap().into_iter().map(|s| s.label).collect();
+            let expected: &[&str] = if version >= 4 { &["Token"] } else { &[] };
+            assert_eq!(labels, expected, "da v{version}");
             let lock = db.lock_settings().unwrap();
             assert!(!lock.pin_set && !lock.hello_enabled, "da v{version}");
             assert_eq!(lock.idle_minutes, Some(crate::lock::IDLE_DEFAULT_MINUTES));

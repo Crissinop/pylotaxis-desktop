@@ -15,6 +15,7 @@ const app = (id: string, categoryId: string | null): RegisteredApp => ({
 describe('toSections', () => {
   test('rispetta l’ordine delle categorie e mette in fondo le app senza categoria', () => {
     const sections = toSections({
+      secrets: [],
       categories: [
         { id: 'b', name: 'Lavoro' },
         { id: 'a', name: 'Casa' },
@@ -26,12 +27,12 @@ describe('toSections', () => {
   });
 
   test('tiene le categorie vuote e omette la sezione senza categoria se non serve', () => {
-    const sections = toSections({ categories: [{ id: 'a', name: 'Casa' }], apps: [] });
+    const sections = toSections({ secrets: [], categories: [{ id: 'a', name: 'Casa' }], apps: [] });
     expect(sections).toEqual([{ category: { id: 'a', name: 'Casa' }, apps: [] }]);
   });
 
   test('un’app con categoria sconosciuta non sparisce (caso negativo)', () => {
-    const sections = toSections({ categories: [], apps: [app('1', 'sconosciuta')] });
+    const sections = toSections({ secrets: [], categories: [], apps: [app('1', 'sconosciuta')] });
     expect(sections).toEqual([{ category: null, apps: [app('1', 'sconosciuta')] }]);
   });
 });

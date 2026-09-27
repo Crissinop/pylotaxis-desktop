@@ -1,4 +1,5 @@
-//! Windows Hello, inattività di sistema e stato della sessione, con le API di Windows (v0.3.0).
+//! Windows Hello, inattività di sistema, stato della sessione (v0.3.0) e appunti privati
+//! (v0.4.0), con le API di Windows.
 //!
 //! È l'unico file del progetto con codice `unsafe`: ogni blocco chiama una funzione Win32 o
 //! COM che windows-rs dichiara `unsafe`, e porta un commento SAFETY. Il permesso è concesso
@@ -6,10 +7,18 @@
 
 use std::ffi::c_void;
 use std::sync::Mutex;
+use std::time::Duration;
 
 use tauri::{Runtime, WebviewWindow};
 use windows::Security::Credentials::UI::{UserConsentVerificationResult, UserConsentVerifier};
-use windows::Win32::Foundation::HWND;
+use windows::Win32::Foundation::GlobalFree;
+use windows::Win32::Foundation::{HANDLE, HWND};
+use windows::Win32::System::DataExchange::{
+    CloseClipboard, EmptyClipboard, GetClipboardSequenceNumber, OpenClipboard,
+    RegisterClipboardFormatW, SetClipboardData,
+};
+use windows::Win32::System::Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock};
+use windows::Win32::System::Ole::CF_UNICODETEXT;
 use windows::Win32::System::RemoteDesktop::{
     WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION, WTS_SESSIONSTATE_LOCK, WTSDisconnected,
     WTSFreeMemory, WTSINFOEXW, WTSQuerySessionInformationW, WTSSessionInfoEx,
@@ -17,7 +26,7 @@ use windows::Win32::System::RemoteDesktop::{
 use windows::Win32::System::SystemInformation::GetTickCount;
 use windows::Win32::System::WinRT::IUserConsentVerifierInterop;
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
-use windows::core::{HSTRING, PWSTR, factory};
+use windows::core::{HSTRING, PCWSTR, PWSTR, factory, w};
 use windows_future::{AsyncStatus, IAsyncOperation};
 
 use super::{availability_result, verification_result};
@@ -150,6 +159,116 @@ fn read_session_info(buffer: PWSTR, bytes: u32) -> Option<bool> {
     let level1 = unsafe { info.Data.WTSInfoExLevel1 };
     let flag_locked = u32::try_from(level1.SessionFlags).ok() == Some(WTS_SESSIONSTATE_LOCK);
     Some(flag_locked || level1.SessionState == WTSDisconnected)
+}
+
+/// Tentativi di aprire gli appunti, che un'altra app può tenere aperti per un istante.
+const CLIPBOARD_OPEN_ATTEMPTS: u32 = 10;
+const CLIPBOARD_RETRY: Duration = Duration::from_millis(15);
+
+/// Formati che tengono il contenuto fuori dalla cronologia (Win+V) e dalla sincronizzazione
+/// tra dispositivi. I primi tre sono documentati da Microsoft (Clipboard Formats); l'ultimo è
+/// una convenzione dei gestori di appunti di terze parti. Ognuno riceve un DWORD pari a 0.
+fn private_formats() -> [PCWSTR; 4] {
+    [
+        w!("ExcludeClipboardContentFromMonitorProcessing"),
+        w!("CanIncludeInClipboardHistory"),
+        w!("CanUploadToCloudClipboard"),
+        w!("Clipboard Viewer Ignore"),
+    ]
+}
+
+#[allow(unsafe_code)]
+fn open_clipboard(owner: Option<HWND>) -> Result<(), CommandError> {
+    for attempt in 1..=CLIPBOARD_OPEN_ATTEMPTS {
+        // SAFETY: `owner` è l'HWND della finestra principale oppure nessuno; nessun puntatore.
+        if unsafe { OpenClipboard(owner) }.is_ok() {
+            return Ok(());
+        }
+        if attempt < CLIPBOARD_OPEN_ATTEMPTS {
+            std::thread::sleep(CLIPBOARD_RETRY);
+        }
+    }
+    Err(CommandError::CLIPBOARD_UNAVAILABLE)
+}
+
+/// Mette `bytes` negli appunti già aperti, nel formato `format`.
+#[allow(unsafe_code)]
+fn set_clipboard_bytes(format: u32, bytes: &[u8]) -> Result<(), CommandError> {
+    // SAFETY: la memoria è allocata qui, mobile e della dimensione di `bytes`; la copia resta
+    // entro quella dimensione. Se SetClipboardData riesce la memoria passa al sistema,
+    // altrimenti la si libera qui.
+    unsafe {
+        let memory = GlobalAlloc(GMEM_MOVEABLE, bytes.len())
+            .map_err(|_| CommandError::CLIPBOARD_UNAVAILABLE)?;
+        let target = GlobalLock(memory);
+        if target.is_null() {
+            let _ = GlobalFree(Some(memory));
+            return Err(CommandError::CLIPBOARD_UNAVAILABLE);
+        }
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), target.cast::<u8>(), bytes.len());
+        // Restituisce un errore anche quando riesce (contatore a zero): si ignora.
+        let _ = GlobalUnlock(memory);
+        if SetClipboardData(format, Some(HANDLE(memory.0))).is_err() {
+            let _ = GlobalFree(Some(memory));
+            return Err(CommandError::CLIPBOARD_UNAVAILABLE);
+        }
+    }
+    Ok(())
+}
+
+/// Copia `text` negli appunti come testo privato e restituisce il numero di sequenza che
+/// gli appunti hanno subito dopo: serve a svuotarli solo se nessuno ha copiato altro.
+#[allow(unsafe_code)]
+pub fn clipboard_copy_private(owner: usize, text: &str) -> Result<u32, CommandError> {
+    let window = HWND(std::ptr::with_exposed_provenance_mut::<c_void>(owner));
+    let mut bytes: Vec<u8> = text
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .flat_map(u16::to_ne_bytes)
+        .collect();
+    open_clipboard(Some(window))?;
+    let written = (|| {
+        // SAFETY: gli appunti sono aperti da questo thread (sopra) e si chiudono qui sotto.
+        unsafe { EmptyClipboard() }.map_err(|_| CommandError::CLIPBOARD_UNAVAILABLE)?;
+        // Prima i formati privati, poi il testo: se uno manca, il testo non entra affatto.
+        for name in private_formats() {
+            // SAFETY: `name` è una stringa costante terminata da zero (macro `w!`).
+            let format = unsafe { RegisterClipboardFormatW(name) };
+            if format == 0 {
+                return Err(CommandError::CLIPBOARD_UNAVAILABLE);
+            }
+            set_clipboard_bytes(format, &0_u32.to_ne_bytes())?;
+        }
+        set_clipboard_bytes(u32::from(CF_UNICODETEXT.0), &bytes)
+    })();
+    if written.is_err() {
+        // SAFETY: appunti ancora aperti da questo thread: nulla di parziale resta dentro.
+        let _ = unsafe { EmptyClipboard() };
+    }
+    // SAFETY: chiude gli appunti aperti da questo thread.
+    let _ = unsafe { CloseClipboard() };
+    // Copia locale del valore: la si azzera appena non serve più.
+    bytes.fill(0);
+    written?;
+    // SAFETY: nessun argomento; legge il contatore degli appunti.
+    Ok(unsafe { GetClipboardSequenceNumber() })
+}
+
+/// Svuota gli appunti se il loro numero di sequenza è ancora `sequence`.
+#[allow(unsafe_code)]
+pub fn clipboard_clear_if(sequence: u32) {
+    // SAFETY: nessun argomento.
+    if unsafe { GetClipboardSequenceNumber() } != sequence || open_clipboard(None).is_err() {
+        return;
+    }
+    // SAFETY: appunti aperti da questo thread; il controllo si ripete a appunti aperti, quando
+    // nessun altro può cambiarli.
+    unsafe {
+        if GetClipboardSequenceNumber() == sequence {
+            let _ = EmptyClipboard();
+        }
+        let _ = CloseClipboard();
+    }
 }
 
 #[cfg(test)]

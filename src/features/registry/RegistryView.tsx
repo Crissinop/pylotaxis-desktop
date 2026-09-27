@@ -2,10 +2,12 @@ import { useTranslation } from 'react-i18next';
 
 import type { Category, RegisteredApp, Registry } from '../../lib/ipc';
 import { toSections } from './sections';
+import { countByApp } from '../secrets/grouping';
 
 interface RegistryViewProps {
   registry: Registry;
   onLaunch: (app: RegisteredApp) => void;
+  onSecrets: (app: RegisteredApp) => void;
   onEditApp: (app: RegisteredApp) => void;
   onDeleteApp: (app: RegisteredApp) => void;
   onRenameCategory: (category: Category) => void;
@@ -16,13 +18,15 @@ interface RegistryViewProps {
 
 interface AppRowProps {
   app: RegisteredApp;
+  secretCount: number;
   onLaunch: (app: RegisteredApp) => void;
+  onSecrets: (app: RegisteredApp) => void;
   onEdit: (app: RegisteredApp) => void;
   onDelete: (app: RegisteredApp) => void;
 }
 
 /** Riga di un'app: il nome è il pulsante di avvio, così Invio e clic fanno la stessa cosa. */
-function AppRow({ app, onLaunch, onEdit, onDelete }: AppRowProps) {
+function AppRow({ app, secretCount, onLaunch, onSecrets, onEdit, onDelete }: AppRowProps) {
   const { t } = useTranslation();
   return (
     <li className="app-row">
@@ -51,6 +55,16 @@ function AppRow({ app, onLaunch, onEdit, onDelete }: AppRowProps) {
         <button
           type="button"
           className="button button--ghost"
+          onClick={() => onSecrets(app)}
+          aria-label={t('registry.secretsFor', { name: app.name })}
+        >
+          {secretCount > 0
+            ? t('registry.secretCount', { count: secretCount })
+            : t('registry.secrets')}
+        </button>
+        <button
+          type="button"
+          className="button button--ghost"
           onClick={() => onEdit(app)}
           aria-label={t('registry.editApp', { name: app.name })}
         >
@@ -72,6 +86,7 @@ function AppRow({ app, onLaunch, onEdit, onDelete }: AppRowProps) {
 export function RegistryView({
   registry,
   onLaunch,
+  onSecrets,
   onEditApp,
   onDeleteApp,
   onRenameCategory,
@@ -80,6 +95,7 @@ export function RegistryView({
   onAddCategory,
 }: RegistryViewProps) {
   const { t } = useTranslation();
+  const secretCounts = countByApp(registry.secrets);
 
   if (registry.apps.length === 0 && registry.categories.length === 0) {
     return (
@@ -135,7 +151,9 @@ export function RegistryView({
                   <AppRow
                     key={app.id}
                     app={app}
+                    secretCount={secretCounts.get(app.id) ?? 0}
                     onLaunch={onLaunch}
+                    onSecrets={onSecrets}
                     onEdit={onEditApp}
                     onDelete={onDeleteApp}
                   />
