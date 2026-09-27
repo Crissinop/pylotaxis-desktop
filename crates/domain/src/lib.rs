@@ -8,6 +8,7 @@ mod error;
 pub mod groups;
 pub mod health;
 mod hex;
+pub mod icons;
 pub mod launch;
 pub mod lock;
 pub mod registry;

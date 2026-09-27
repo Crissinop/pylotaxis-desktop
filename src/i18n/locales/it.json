@@ -20,8 +20,6 @@
     "emptyBody": "Qui compariranno le app che registri: programmi installati, indirizzi web e protocolli.",
     "uncategorized": "Senza categoria",
     "launch": "Avvia {{name}}",
-    "editApp": "Modifica {{name}}",
-    "deleteApp": "Elimina {{name}}",
     "renameCategory": "Rinomina la categoria {{name}}",
     "deleteCategory": "Elimina la categoria {{name}}",
     "kind": {
@@ -32,7 +30,7 @@
     "secrets": "Segreti",
     "secretCount_one": "1 segreto",
     "secretCount_other": "{{count}} segreti",
-    "secretsFor": "Segreti di {{name}}"
+    "moreActions": "Altre azioni per {{name}}"
   },
   "form": {
     "createTitle": "Aggiungi un'app",
@@ -57,7 +55,13 @@
     "tagsHint": "Separati da virgole",
     "environmentLabel": "Ambiente",
     "healthLabel": "Controlla se risponde",
-    "healthHint": "Una richiesta senza credenziali al massimo una volta al minuto, solo con la finestra in vista."
+    "healthHint": "Una richiesta senza credenziali al massimo una volta al minuto, solo con la finestra in vista.",
+    "iconLabel": "Icona",
+    "iconChoose": "Scegli un'immagine…",
+    "iconReset": "Icona predefinita",
+    "iconHint": "PNG fino a 256 KB e 1024 pixel per lato. Cambia subito, senza salvare. Senza immagine, un eseguibile mostra la sua icona e le altre app le iniziali.",
+    "iconDialogTitle": "Scegli l'icona dell'app",
+    "iconFilter": "Immagini PNG"
   },
   "category": {
     "createTitle": "Nuova categoria",
@@ -82,22 +86,22 @@
     "groupLaunched_one": "Aperta {{count}} app di «{{name}}».",
     "groupLaunched_other": "Aperte {{count}} app di «{{name}}».",
     "groupSaved": "Gruppo «{{name}}» salvato.",
-    "groupDeleted": "Gruppo «{{name}}» eliminato."
+    "groupDeleted": "Gruppo «{{name}}» eliminato.",
+    "iconChanged": "Icona aggiornata."
   },
   "startup": {
     "title": "Il registro non si apre"
   },
   "lock": {
-    "title": "Il registro è bloccato",
     "bodyHello": "Sblocca con Windows Hello oppure con il PIN.",
     "bodyPin": "Inserisci il PIN per sbloccare.",
     "helloButton": "Sblocca con Windows Hello",
     "helloWaiting": "In attesa di Windows Hello…",
     "helloPrompt": "Conferma la tua identità per sbloccare {{name}}.",
     "pinLabel": "PIN",
-    "pinSubmit": "Sblocca",
     "retryIn_one": "Troppi tentativi. Riprova tra {{count}} secondo.",
-    "retryIn_other": "Troppi tentativi. Riprova tra {{count}} secondi."
+    "retryIn_other": "Troppi tentativi. Riprova tra {{count}} secondi.",
+    "enterHint": "Digita il PIN e premi Invio."
   },
   "security": {
     "title": "Sicurezza",
@@ -229,8 +233,6 @@
     "launch": "Avvia il gruppo {{name}}",
     "count_one": "{{count}} app",
     "count_other": "{{count}} app",
-    "editGroup": "Modifica il gruppo {{name}}",
-    "deleteGroup": "Elimina il gruppo {{name}}",
     "createTitle": "Nuovo gruppo",
     "editTitle": "Modifica «{{name}}»",
     "nameLabel": "Nome",
@@ -251,7 +253,8 @@
     "resultLaunched_one": "Aperta {{count}} app.",
     "resultLaunched_other": "Aperte {{count}} app.",
     "resultChanged": "Questi eseguibili sono cambiati dall'ultima conferma: controllali e avviali uno per uno.",
-    "confirmLaunch": "Conferma e avvia"
+    "confirmLaunch": "Conferma e avvia",
+    "moreActions": "Altre azioni per il gruppo {{name}}"
   },
   "errors": {
     "DB_WRONG_KEY": "La chiave non apre il database, oppure il file è danneggiato.",
@@ -308,7 +311,9 @@
     "HEALTH_CHECK_WEB_ONLY": "Il controllo dello stato vale solo per le app web.",
     "GROUP_TOO_LARGE": "Un gruppo può contenere al massimo 20 app.",
     "GROUP_APP_DUPLICATE": "La stessa app compare due volte nel gruppo.",
-    "AUTOSTART_UNAVAILABLE": "Windows non ha permesso di cambiare l'avvio all'accesso."
+    "AUTOSTART_UNAVAILABLE": "Windows non ha permesso di cambiare l'avvio all'accesso.",
+    "ICON_INVALID": "L'immagine non è un PNG valido.",
+    "ICON_TOO_LARGE": "L'immagine supera 256 KB o 1024 pixel per lato."
   },
   "footer": {
     "version": "Versione {{version}}",

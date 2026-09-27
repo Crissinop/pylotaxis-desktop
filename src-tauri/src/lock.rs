@@ -208,6 +208,7 @@ mod tests {
             idle_minutes,
             failed_attempts: 0,
             last_failure_ms: None,
+            pin_length: None,
         }
     }
 

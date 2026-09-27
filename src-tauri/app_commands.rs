@@ -44,4 +44,8 @@ pub const APP_COMMANDS: &[&str] = &[
     "health_status",
     "autostart_status",
     "autostart_set",
+    // Icone delle app (v0.7.0).
+    "app_icons",
+    "app_icon_pick",
+    "app_icon_reset",
 ];

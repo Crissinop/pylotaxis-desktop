@@ -86,6 +86,7 @@ mod tests {
             tags: Vec::new(),
             environment: None,
             health_check: false,
+            icon_rev: None,
         }
     }
 

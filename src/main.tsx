@@ -6,6 +6,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import App from './App';
 import { APP_NAME } from './constants/app';
 import { Palette } from './features/palette/Palette';
+import { disableDefaultContextMenu } from './lib/contextMenu';
 import { PALETTE_WINDOW } from './lib/ipc';
 import './i18n';
 import './styles/fonts.css';
@@ -13,6 +14,8 @@ import './styles/tokens.css';
 import './styles/app.css';
 
 document.title = APP_NAME;
+// Vale per le due finestre: stessa pagina (v0.7.0).
+disableDefaultContextMenu();
 
 const container = document.getElementById('root');
 if (!container) {

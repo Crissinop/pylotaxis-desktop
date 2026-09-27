@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { IDLE_OPTIONS, digitsOnly, idleChoices, secondsLeft } from './timing';
+import { digitsOnly, IDLE_OPTIONS, idleChoices, secondsLeft, shouldAutoSubmit } from './timing';
 
 describe('secondsLeft', () => {
   test('arrotonda per eccesso e non scende sotto zero', () => {
@@ -29,5 +29,18 @@ describe('idleChoices', () => {
   test('un valore diverso compare al suo posto, prima di "mai"', () => {
     expect(idleChoices(240)).toEqual([1, 5, 15, 30, 60, 240, null]);
     expect(idleChoices(10)).toEqual([1, 5, 10, 15, 30, 60, null]);
+  });
+});
+
+describe('sblocco automatico (v0.7.0)', () => {
+  test('tenta solo quando le cifre raggiungono la lunghezza nota', () => {
+    expect(shouldAutoSubmit('48291', 6)).toBe(false);
+    expect(shouldAutoSubmit('482915', 6)).toBe(true);
+    expect(shouldAutoSubmit('4829157', 6)).toBe(false);
+  });
+
+  test('senza lunghezza nota non tenta mai: si conferma con Invio', () => {
+    expect(shouldAutoSubmit('482915', null)).toBe(false);
+    expect(shouldAutoSubmit('', null)).toBe(false);
   });
 });

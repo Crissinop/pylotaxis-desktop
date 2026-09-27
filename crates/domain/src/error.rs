@@ -111,6 +111,14 @@ pub enum Error {
     #[error("controllo dello stato solo per le app web")]
     HealthCheckWebOnly,
 
+    /// L'immagine scelta non è un PNG valido (v0.7.0).
+    #[error("immagine non valida")]
+    IconInvalid,
+
+    /// L'immagine supera il peso o le dimensioni ammesse (v0.7.0).
+    #[error("immagine troppo grande")]
+    IconTooLarge,
+
     /// Un gruppo ha più app del massimo consentito (v0.6.0).
     #[error("troppe app nel gruppo")]
     GroupTooLarge,
@@ -159,6 +167,8 @@ impl Error {
         "SHORTCUT_INVALID",
         "ENVIRONMENT_INVALID",
         "HEALTH_CHECK_WEB_ONLY",
+        "ICON_INVALID",
+        "ICON_TOO_LARGE",
         "GROUP_TOO_LARGE",
         "GROUP_APP_DUPLICATE",
         "IO_ERROR",
@@ -198,6 +208,8 @@ impl Error {
             Self::ShortcutInvalid => "SHORTCUT_INVALID",
             Self::EnvironmentInvalid => "ENVIRONMENT_INVALID",
             Self::HealthCheckWebOnly => "HEALTH_CHECK_WEB_ONLY",
+            Self::IconInvalid => "ICON_INVALID",
+            Self::IconTooLarge => "ICON_TOO_LARGE",
             Self::GroupTooLarge => "GROUP_TOO_LARGE",
             Self::GroupAppDuplicate => "GROUP_APP_DUPLICATE",
             Self::Io(_) => "IO_ERROR",
@@ -266,6 +278,8 @@ mod tests {
             Error::ShortcutInvalid,
             Error::EnvironmentInvalid,
             Error::HealthCheckWebOnly,
+            Error::IconInvalid,
+            Error::IconTooLarge,
             Error::GroupTooLarge,
             Error::GroupAppDuplicate,
             Error::Io(std::io::Error::other("prova")),

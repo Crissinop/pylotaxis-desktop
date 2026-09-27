@@ -105,6 +105,8 @@ pub struct App {
     /// Ambiente e controllo dello stato (v0.6.0).
     pub environment: Option<Environment>,
     pub health_check: bool,
+    /// Revisione dell'icona salvata, `None` = iniziali (v0.7.0). L'immagine si legge a parte.
+    pub icon_rev: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -290,7 +292,8 @@ fn parse_optional_uuid(row: &Row<'_>, index: usize) -> rusqlite::Result<Option<U
     .transpose()
 }
 
-const APP_COLUMNS: &str = "id, name, kind, target, sha256, category_id, environment, health_check";
+const APP_COLUMNS: &str =
+    "id, name, kind, target, sha256, category_id, environment, health_check, icon_rev";
 
 /// Stessa app nei diversi ambienti una accanto all'altra: senza ambiente, sviluppo, collaudo,
 /// produzione (v0.6.0).
@@ -336,6 +339,7 @@ fn app_from_row(row: &Row<'_>) -> rusqlite::Result<App> {
             })
             .transpose()?,
         health_check: row.get::<_, i64>(7)? != 0,
+        icon_rev: row.get(8)?,
     })
 }
 
@@ -461,6 +465,12 @@ impl Database {
         if changed == 0 {
             return Err(Error::NotFound);
         }
+        // Un'app che non è più un eseguibile perde l'icona estratta; una scelta resta. (v0.7.0)
+        tx.execute(
+            "UPDATE apps SET icon = NULL, icon_kind = NULL, icon_rev = NULL
+             WHERE id = ?1 AND kind <> 'executable' AND icon_kind = 'executable'",
+            params![id.to_string()],
+        )?;
         tx.execute(
             "DELETE FROM app_tags WHERE app_id = ?1",
             params![id.to_string()],

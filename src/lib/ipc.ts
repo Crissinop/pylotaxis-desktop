@@ -34,6 +34,8 @@ export interface RegisteredApp {
   environment: Environment | null;
   /** Controllo dello stato acceso: solo per le app web. */
   healthCheck: boolean;
+  /** Revisione dell'icona; l'immagine arriva da `getAppIcons`. `null` = iniziali (v0.7.0). */
+  iconRev: string | null;
 }
 
 /** Gruppo di avvio: le app in ordine di avvio (src-tauri/src/groups.rs). (v0.6.0) */
@@ -138,6 +140,19 @@ export interface HealthEntry {
 /** Stato delle app con il controllo acceso; Rust ricontrolla quelle scadute, se in vista. */
 export const getHealth = () => invoke<HealthEntry[]>('health_status');
 
+/** Icona salvata di un'app: solo l'immagine, mai il percorso (v0.7.0). */
+export interface AppIconImage {
+  id: string;
+  dataUrl: string;
+}
+
+export const getAppIcons = () => invoke<AppIconImage[]>('app_icons');
+/** Sceglie un PNG con la finestra di Windows aperta da Rust; `false` se annullata. */
+export const pickAppIcon = (id: string, title: string, filterLabel: string) =>
+  invoke<boolean>('app_icon_pick', { id, title, filterLabel });
+/** Torna all'icona dell'eseguibile, o alle iniziali. */
+export const resetAppIcon = (id: string) => invoke<void>('app_icon_reset', { id });
+
 /** Evento di Rust a ogni risultato nuovo di un controllo. */
 export const HEALTH_CHANGED = 'health-changed';
 
@@ -162,6 +177,8 @@ export interface LockStatus {
   idleMinutes: number | null;
   /** Millisecondi prima del prossimo tentativo di PIN ammesso; 0 = subito. */
   retryAfterMs: number;
+  /** Cifre del PIN, per sbloccare senza Invio; mai il PIN. `null` = non ancora nota (v0.7.0). */
+  pinLength: number | null;
 }
 
 export const getLockStatus = () => invoke<LockStatus>('lock_status');

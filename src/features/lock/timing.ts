@@ -30,3 +30,12 @@ export function idleChoices(current: number | null): (number | null)[] {
   const minutes = IDLE_OPTIONS.filter((option): option is number => option !== null);
   return [...[...minutes, current as number].sort((a, b) => a - b), null];
 }
+
+/**
+ * Vero quando le cifre digitate raggiungono la lunghezza nota del PIN: si tenta una volta
+ * sola, perché ogni tentativo conta e costa un calcolo Argon2id. Lunghezza non nota (PIN
+ * impostato prima della v0.7.0): si conferma con Invio. (v0.7.0)
+ */
+export function shouldAutoSubmit(pin: string, pinLength: number | null): boolean {
+  return pinLength !== null && pin.length === pinLength;
+}

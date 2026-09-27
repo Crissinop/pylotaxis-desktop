@@ -20,8 +20,6 @@
     "emptyBody": "The apps you register will appear here: installed programs, web addresses and protocols.",
     "uncategorized": "Uncategorized",
     "launch": "Launch {{name}}",
-    "editApp": "Edit {{name}}",
-    "deleteApp": "Delete {{name}}",
     "renameCategory": "Rename category {{name}}",
     "deleteCategory": "Delete category {{name}}",
     "kind": {
@@ -32,7 +30,7 @@
     "secrets": "Secrets",
     "secretCount_one": "1 secret",
     "secretCount_other": "{{count}} secrets",
-    "secretsFor": "Secrets of {{name}}"
+    "moreActions": "More actions for {{name}}"
   },
   "form": {
     "createTitle": "Add an app",
@@ -57,7 +55,13 @@
     "tagsHint": "Separated by commas",
     "environmentLabel": "Environment",
     "healthLabel": "Check whether it responds",
-    "healthHint": "A request without credentials at most once a minute, only while the window is in view."
+    "healthHint": "A request without credentials at most once a minute, only while the window is in view.",
+    "iconLabel": "Icon",
+    "iconChoose": "Choose an image…",
+    "iconReset": "Default icon",
+    "iconHint": "PNG up to 256 KB and 1024 pixels per side. It changes right away, no need to save. Without an image, an executable shows its own icon and other apps show their initials.",
+    "iconDialogTitle": "Choose the app icon",
+    "iconFilter": "PNG images"
   },
   "category": {
     "createTitle": "New category",
@@ -82,22 +86,22 @@
     "groupLaunched_one": "Opened {{count}} app from “{{name}}”.",
     "groupLaunched_other": "Opened {{count}} apps from “{{name}}”.",
     "groupSaved": "Group “{{name}}” saved.",
-    "groupDeleted": "Group “{{name}}” deleted."
+    "groupDeleted": "Group “{{name}}” deleted.",
+    "iconChanged": "Icon updated."
   },
   "startup": {
     "title": "The registry cannot be opened"
   },
   "lock": {
-    "title": "The registry is locked",
     "bodyHello": "Unlock with Windows Hello or with your PIN.",
     "bodyPin": "Enter your PIN to unlock.",
     "helloButton": "Unlock with Windows Hello",
     "helloWaiting": "Waiting for Windows Hello…",
     "helloPrompt": "Confirm your identity to unlock {{name}}.",
     "pinLabel": "PIN",
-    "pinSubmit": "Unlock",
     "retryIn_one": "Too many attempts. Try again in {{count}} second.",
-    "retryIn_other": "Too many attempts. Try again in {{count}} seconds."
+    "retryIn_other": "Too many attempts. Try again in {{count}} seconds.",
+    "enterHint": "Type your PIN and press Enter."
   },
   "security": {
     "title": "Security",
@@ -229,8 +233,6 @@
     "launch": "Launch the {{name}} group",
     "count_one": "{{count}} app",
     "count_other": "{{count}} apps",
-    "editGroup": "Edit the {{name}} group",
-    "deleteGroup": "Delete the {{name}} group",
     "createTitle": "New group",
     "editTitle": "Edit “{{name}}”",
     "nameLabel": "Name",
@@ -251,7 +253,8 @@
     "resultLaunched_one": "Opened {{count}} app.",
     "resultLaunched_other": "Opened {{count}} apps.",
     "resultChanged": "These executables changed since they were last confirmed: check them and launch them one by one.",
-    "confirmLaunch": "Confirm and launch"
+    "confirmLaunch": "Confirm and launch",
+    "moreActions": "More actions for the {{name}} group"
   },
   "errors": {
     "DB_WRONG_KEY": "The key does not open the database, or the file is damaged.",
@@ -308,7 +311,9 @@
     "HEALTH_CHECK_WEB_ONLY": "Status checks only apply to web apps.",
     "GROUP_TOO_LARGE": "A group can hold at most 20 apps.",
     "GROUP_APP_DUPLICATE": "The same app appears twice in the group.",
-    "AUTOSTART_UNAVAILABLE": "Windows did not allow changing the sign-in startup."
+    "AUTOSTART_UNAVAILABLE": "Windows did not allow changing the sign-in startup.",
+    "ICON_INVALID": "The image is not a valid PNG.",
+    "ICON_TOO_LARGE": "The image exceeds 256 KB or 1024 pixels per side."
   },
   "footer": {
     "version": "Version {{version}}",

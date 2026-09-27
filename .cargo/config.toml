@@ -1,0 +1,7 @@
+# Configurazione di cargo per il repository (v0.7.0).
+
+# LNK4099: gli oggetti di OpenSSL compilati da openssl-src (dentro SQLCipher) rimandano a file
+# PDB che non esistono. Mancano solo i simboli di debug di quella libreria, e le migliaia di
+# righe dell'avviso nascondevano l'unico errore vero (lezione 52). Solo per il linker MSVC.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/IGNORE:4099"]

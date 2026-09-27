@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
 import { APP_NAME } from '../../constants/app';
 import { errorCode } from '../../lib/errors';
+import { playEntrance } from '../../lib/motion';
 import {
   copySecret,
   launchApp,
@@ -18,10 +19,16 @@ import {
   showMainWindow,
   type Environment,
   type HealthStatus,
+  type RegisteredApp,
   type Registry,
 } from '../../lib/ipc';
 import { useHealth } from '../health/useHealth';
+import { AppIcon, GroupIcon } from '../icons/AppIcon';
+import { useAppIcons } from '../icons/useAppIcons';
 import { buildEntries, rank, type PaletteEntry } from './ranking';
+
+/** Nessuna app: riferimento stabile per la firma delle icone. */
+const NO_APPS: RegisteredApp[] = [];
 
 const hide = () => void getCurrentWindow().hide();
 
@@ -45,6 +52,17 @@ function detail(
 }
 
 /** Ambiente da mostrare accanto al titolo; per un gruppo, la produzione se ne contiene. */
+/** Icona accanto al nome (v0.7.0); le azioni non ne hanno, ma tengono lo spazio. */
+function entryIcon(entry: PaletteEntry, icons: ReadonlyMap<string, string>) {
+  if (entry.kind === 'app' || entry.kind === 'secret') {
+    return <AppIcon name={entry.app.name} src={icons.get(entry.app.id)} size="small" />;
+  }
+  if (entry.kind === 'group') {
+    return <GroupIcon name={entry.group.name} apps={entry.apps} icons={icons} size="small" />;
+  }
+  return null;
+}
+
 function environmentOf(entry: PaletteEntry): Environment | null {
   if (entry.kind === 'app' || entry.kind === 'secret') return entry.app.environment;
   if (entry.kind === 'group') return entry.production ? 'production' : null;
@@ -61,12 +79,14 @@ export function Palette() {
   const { t } = useTranslation();
   const ids = { input: useId(), list: useId(), error: useId() };
   const input = useRef<HTMLInputElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const [registry, setRegistry] = useState<Registry | null>(null);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const [preselect, setPreselect] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const health = useHealth(registry !== null);
+  const icons = useAppIcons(registry?.apps ?? NO_APPS);
 
   useEffect(() => {
     let mounted = true;
@@ -78,6 +98,7 @@ export function Palette() {
       setError(null);
       setPreselect(select);
       input.current?.focus();
+      if (root.current) playEntrance(root.current);
       listRegistry()
         .then((next) => mounted && setRegistry(next))
         .catch(() => mounted && setRegistry(null));
@@ -153,7 +174,7 @@ export function Palette() {
   const optionId = (index: number) => `${ids.list}-${index}`;
 
   return (
-    <div className="palette">
+    <div ref={root} className="palette">
       <input
         ref={input}
         id={ids.input}
@@ -194,6 +215,7 @@ export function Palette() {
             onClick={() => run(entry)}
           >
             <span className="palette__title">
+              <span className="palette__icon">{entryIcon(entry, icons)}</span>
               {entry.title}
               <EnvironmentBadge environment={environmentOf(entry)} />
             </span>

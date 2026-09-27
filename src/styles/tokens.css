@@ -46,6 +46,19 @@
 
   --radius-control: 6px;
   --radius-dialog: 10px;
+  /* Curva d'uscita comune a transizioni e animazioni (A.7.7, v0.7.0). */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --color-focus-glow: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  /* Iniziali delle app senza icona: pietre scure con testo marmo, uguali nei due temi.
+     Mai il verderame né il bronzo, riservati alla chiave di volta e alla produzione (A.2). */
+  --color-monogram-text: var(--palette-marmo);
+  --color-monogram-edge: rgb(228 231 224 / 0.08);
+  --color-tone-0: #2f3642;
+  --color-tone-1: #3d4a5c;
+  --color-tone-2: #4b4f58;
+  --color-tone-3: #574956;
+  --color-tone-4: #52494a;
+  --color-tone-5: #414a45;
 }
 
 @media (prefers-color-scheme: dark) {

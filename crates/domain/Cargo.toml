@@ -18,6 +18,9 @@ url = "2.5.8"
 # UUIDv7: ordinati nel tempo e senza collisioni anche nello stesso millisecondo (A.7.4). (v0.2.0)
 uuid = { version = "1.26.1", features = ["v7"] }
 getrandom = "0.4.3"
+# Icone delle app (v0.7.0): codifica e verifica dei PNG. Stessa versione già nel lockfile
+# (lì solo per la compilazione): nessun crate nuovo.
+png = "0.17.16"
 
 [dev-dependencies]
 tempfile = "3.27.0"

@@ -66,7 +66,9 @@ ricominciare da zero, anche i valori dei segreti vengono eliminati al primo avvi
 Dalla v0.3.0 il registro si può proteggere con un PIN, da **Impostazioni** nella barra in alto.
 Con il PIN impostato l'app si blocca a ogni avvio, dopo il periodo di inattività di sistema scelto
 (15 minuti se non lo cambi), quando si blocca o si scollega la sessione di Windows, e con Ctrl+L.
-Si sblocca con il PIN oppure, se attivato, con Windows Hello.
+Si sblocca con il PIN oppure, se attivato, con Windows Hello. Dalla v0.7.0 il PIN si verifica da solo
+quando raggiunge la sua lunghezza, come sul telefono: un solo tentativo per digitazione. Per un PIN
+impostato prima della v0.7.0 serve Invio la prima volta; da lì l'app ne ricorda la lunghezza, mai il PIN.
 
 | Cosa                | Dove e come                                                                                                                             |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -80,7 +82,7 @@ esecuzione nella tua sessione di Windows, che può leggere la chiave dal Credent
 stesso limite vale per i segreti (v0.4.0).
 
 Se dimentichi il PIN non c'è un recupero: il registro è intatto ma non si sblocca. Il backup e il
-recupero arrivano con la v0.7.0.
+recupero arrivano con la v0.8.0.
 
 Da provare a mano sulla macchina, perché dipende da Windows e non da un test automatico: il prompt di
 Windows Hello davanti alla finestra dell'app, Win+L e il ritorno dalla sospensione (l'app deve
@@ -96,7 +98,7 @@ Dalla v0.5.0 ogni app si apre senza mouse, e il portale vive nella tray.
 | Tray               | Clic sinistro: la finestra. Menu con il destro: Apri, Palette di comando, Blocca, Esci. Chiudere la finestra (pulsante o Alt+F4) la nasconde; si esce da **Esci**                                                                                                                                                                                                           |
 | Istanza singola    | Avviare l'app una seconda volta porta davanti quella già aperta                                                                                                                                                                                                                                                                                                             |
 | Link diretti       | `pylotaxis://app/<id>` apre la palette con l'app selezionata: **l'avvio chiede sempre Invio**, perché qualunque pagina web può aprire un link. Solo nella forma esatta; id sconosciuti si ignorano. Lo schema lo registra l'installer; in sviluppo lo registra `tauri dev`                                                                                                  |
-| Barra del titolo   | Propria: si trascina dall'intestazione, doppio clic per ingrandire, pulsanti riduci, ingrandisci e chiudi                                                                                                                                                                                                                                                                   |
+| Barra del titolo   | Propria: si trascina dall'intestazione, doppio clic per ingrandire, pulsanti riduci, ingrandisci e chiudi. Dalla v0.7.0 il tasto destro non apre il menu del browser; resta solo nei campi di testo                                                                                                                                                                         |
 
 Da bloccata la scorciatoia e la voce Palette della tray portano alla schermata di blocco, la palette si
 nasconde e i link si scartano. Se un'altra app usa già la scorciatoia scelta, Windows non la concede:
@@ -118,6 +120,21 @@ Dalla v0.6.0 le app hanno un ambiente, si raccolgono in gruppi e, se lo chiedi, 
 La migrazione 0005 aggiunge ambienti e gruppi: dopo il primo avvio della v0.6.0 le build precedenti non
 aprono più il registro. Prima dell'aggiornamento conviene copiare `registry.db`. Dietro un proxy
 aziendale le app esterne possono risultare non raggiungibili: il controllo si collega direttamente.
+
+## Forma
+
+Dalla v0.7.0 il registro è una griglia di tessere: si riconosce un'app dall'icona, non da una riga di testo.
+
+| Cosa         | Come                                                                                                                                                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tessere      | Icona e nome; il nome intero nel suggerimento. Clic o Invio avviano. Ambiente e stato restano sulla tessera: la produzione con l'etichetta e il filetto bronzo, lo stato con un punto pieno (risponde) o un anello (problema)      |
+| Icone        | Gli eseguibili mostrano la loro, estratta da Rust alla registrazione e quando il file cambia. Le altre app mostrano le iniziali su un tono fisso. Nella scheda dell'app si può scegliere un PNG (fino a 256 KB e 1024 px per lato) |
+| Azioni       | Segreti, Modifica ed Elimina nel menu della tessera: pulsante "⋯", tasto destro, tasto Menu o Maiusc+F10. Frecce per scegliere, Esc per chiudere                                                                                   |
+| Impostazioni | Una scheda per sezione, affiancate quando la finestra è larga                                                                                                                                                                      |
+| Movimento    | Dissolvenze brevi su campi, finestre, cambi di vista e palette. Con "Riduci animazioni" di Windows non si muove nulla                                                                                                              |
+
+La migrazione 0006 aggiunge icone e lunghezza del PIN: dopo il primo avvio della v0.7.0 le build
+precedenti non aprono più il registro. Prima dell'aggiornamento conviene copiare `registry.db`.
 
 ## Struttura
 
@@ -167,14 +184,17 @@ branding/             Sorgenti SVG del simbolo e dell'icona
   `ALLOWED_WHILE_LOCKED` (`src-tauri/src/lock.rs`). Nessun comando restituisce il PIN o la sua impronta.
 - **Nessun percorso dal webview.** Un eseguibile si registra solo con la finestra di scelta di
   Windows, aperta da Rust; il frontend riceve un gettone monouso. Si avvia per id, e un
-  eseguibile cambiato dall'ultima conferma non parte senza un nuovo consenso.
+  eseguibile cambiato dall'ultima conferma non parte senza un nuovo consenso. Le icone arrivano al
+  webview come immagini, mai come percorsi, e un PNG scelto si decodifica per intero in Rust prima
+  di salvarlo (v0.7.0).
 - **Nome in punti noti.** Il nome del prodotto compare solo nelle costanti `APP_NAME`
   (`src/constants/app.ts`, `crates/domain/src/lib.rs`), nei manifest e, in minuscolo, come schema dei
   link in `tauri.conf.json`, da cui Rust lo legge; `npm run check:name` lo verifica.
 - **Versione unica.** `package.json`, `Cargo.toml` alla radice e `src-tauri/tauri.conf.json` riportano
   la stessa versione; `npm run check:versions` lo verifica.
 - **CSP rigida solo in release.** In `tauri dev` la pagina arriva dal server di Vite senza CSP:
-  ciò che dipende dalla CSP si prova con `npm run tauri build`.
+  ciò che dipende dalla CSP si prova con `npm run tauri build`. Dalla v0.7.0 ammette le immagini
+  `data:` delle icone, e nient'altro di nuovo.
 
 ## Icone
 

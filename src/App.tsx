@@ -16,6 +16,7 @@ import { GroupDialog } from './features/groups/GroupDialog';
 import { GroupLaunchDialog } from './features/groups/GroupLaunchDialog';
 import { GroupResultDialog } from './features/groups/GroupResultDialog';
 import { useHealth } from './features/health/useHealth';
+import { useAppIcons } from './features/icons/useAppIcons';
 import { AutostartSettings } from './features/settings/AutostartSettings';
 import { ShortcutSettings } from './features/settings/ShortcutSettings';
 import { errorCode } from './lib/errors';
@@ -100,6 +101,8 @@ const LOCKED_FALLBACK: LockStatus = {
   helloEnabled: false,
   idleMinutes: null,
   retryAfterMs: 0,
+  // Lunghezza ignota: si conferma con Invio, come prima della v0.7.0.
+  pinLength: null,
 };
 
 /**
@@ -129,6 +132,9 @@ async function loadStartup(): Promise<{ lock: LockView; registry: RegistryState 
   const unlocked = lock.status === 'ready' && !lock.lock.locked;
   return { lock, registry: unlocked ? await loadRegistry() : null };
 }
+
+/** Nessuna app: riferimento stabile, la firma delle icone non cambia a ogni render. */
+const NO_APPS: RegisteredApp[] = [];
 
 export default function App() {
   const { t } = useTranslation();
@@ -269,6 +275,7 @@ export default function App() {
 
   // Stato delle app web: solo con il registro in vista e sbloccato (v0.6.0).
   const health = useHealth(view === 'registry' && registry.status === 'ready' && !locked);
+  const icons = useAppIcons(registry.status === 'ready' ? registry.registry.apps : NO_APPS);
 
   const launch = (app: RegisteredApp, acceptChanged: boolean) => {
     launchApp(app.id, acceptChanged)
@@ -320,7 +327,7 @@ export default function App() {
           pulsanti, per Tauri, non trascinano. Il doppio clic ingrandisce. (v0.5.0) */}
       <header className="shell__header" data-tauri-drag-region="deep">
         <div className="brand">
-          <Mark size={36} />
+          <Mark size={28} />
           <span className="wordmark">{APP_NAME}</span>
         </div>
         {ready && !locked && startupFailure === null && (
@@ -366,7 +373,8 @@ export default function App() {
         <WindowControls />
       </header>
 
-      <main className="shell__main">
+      {/* La chiave rimonta il contenuto a ogni cambio di vista: l'entrata la anima il CSS. (v0.7.0) */}
+      <main key={locked ? 'locked' : view} className="shell__main">
         {startupFailure !== null && (
           <section className="empty-state" role="alert">
             <h1 className="empty-state__title">{t('startup.title')}</h1>
@@ -415,6 +423,7 @@ export default function App() {
               registry={registry.registry}
               onLaunch={(app) => launch(app, false)}
               health={health}
+              icons={icons}
               onLaunchGroup={(group) => setModal({ type: 'launchGroup', group })}
               onCreateGroup={() => setModal({ type: 'createGroup' })}
               onEditGroup={(group) => setModal({ type: 'editGroup', group })}
@@ -432,8 +441,11 @@ export default function App() {
 
       {/* Altezza fissa: i messaggi compaiono senza spostare il resto del layout (A.8). */}
       <footer className="shell__footer">
+        {/* La regione resta, cambia il testo: il lettore di schermo lo annuncia (v0.7.0). */}
         <p className="status" role="status">
-          {message}
+          <span key={message} className="status__text">
+            {message}
+          </span>
         </p>
         <span className="version">
           {version ? t('footer.version', { version }) : t('footer.versionUnavailable')}
@@ -444,6 +456,11 @@ export default function App() {
         <AppDialog
           app={modal.type === 'editApp' ? modal.app : undefined}
           categories={categories}
+          icon={modal.type === 'editApp' ? icons.get(modal.app.id) : undefined}
+          onIconChanged={() => {
+            reload().catch(() => undefined);
+            setMessage(t('status.iconChanged'));
+          }}
           onCancel={() => setModal(NO_MODAL)}
           onSubmit={(input) =>
             complete(

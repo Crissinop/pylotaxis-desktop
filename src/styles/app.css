@@ -38,12 +38,15 @@ select {
   height: 100%;
 }
 
+/* Barra del titolo da 48 px: i pulsanti di finestra toccano il bordo in alto e a destra,
+   come nelle app di Windows 11 con la barra propria (v0.7.0). */
 .shell__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
+  height: 48px;
+  padding: 0 0 0 var(--space-4);
   border-bottom: 1px solid var(--color-rule);
 }
 
@@ -68,6 +71,7 @@ select {
 .shell__main {
   overflow-y: auto;
   padding: var(--space-6);
+  animation: rise-in 180ms var(--ease-out);
 }
 
 /* Pulsanti: il primario è unico per area; gli altri restano leggibili ma secondari (A.8). */
@@ -82,6 +86,16 @@ select {
   background: none;
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    background-color 120ms var(--ease-out),
+    border-color 120ms var(--ease-out),
+    color 120ms var(--ease-out),
+    transform 120ms var(--ease-out);
+}
+
+/* Pressione: un feedback che si sente senza spostare nulla (v0.7.0). */
+.button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .button:disabled {
@@ -139,7 +153,7 @@ select {
 .registry {
   display: grid;
   gap: var(--space-8);
-  max-width: 880px;
+  max-width: 1120px;
   margin: 0 auto;
 }
 
@@ -164,85 +178,6 @@ select {
   gap: var(--space-1);
 }
 
-.app-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.app-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-rule);
-}
-
-.app-row__launch {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  padding: var(--space-2);
-  border: 0;
-  border-radius: var(--radius-control);
-  background: none;
-  text-align: left;
-  cursor: pointer;
-}
-
-.app-row__launch:hover .app-row__name {
-  text-decoration: underline;
-}
-
-.app-row__name {
-  font-weight: 600;
-}
-
-.app-row__meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.app-row__target {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-row__actions {
-  display: flex;
-  gap: var(--space-1);
-}
-
-.badge {
-  flex: none;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-rule);
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tag {
-  padding: 0 var(--space-2);
-  border-radius: 999px;
-  background: var(--color-rule);
-  font-size: 12px;
-}
-
 .dialog {
   width: min(520px, calc(100vw - 48px));
   padding: var(--space-6);
@@ -250,6 +185,15 @@ select {
   border-radius: var(--radius-dialog);
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+/* Entrata con dissolvenza e un accenno di scala; l'uscita è la copia di src/lib/motion.ts. */
+.dialog[open] {
+  animation: dialog-in 200ms var(--ease-out);
+}
+
+.dialog[open]::backdrop {
+  animation: fade-in 200ms var(--ease-out);
 }
 
 .dialog::backdrop {
@@ -300,6 +244,8 @@ select {
   font-weight: 600;
 }
 
+/* Il fuoco di un campo si accende con una dissolvenza: bordo e alone, solo ridisegno, nessun
+   ricalcolo del layout (A.7.7, v0.7.0). */
 .field__input {
   width: 100%;
   min-height: 36px;
@@ -307,6 +253,15 @@ select {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-bg);
+  transition:
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
+}
+
+.field__input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-focus-glow);
+  outline: none;
 }
 
 .field__hint,
@@ -334,76 +289,119 @@ select {
   cursor: pointer;
 }
 
-/* Schermata di blocco: solo presentazione, il blocco lo applica Rust (v0.3.0). */
+/* Schermata di blocco: solo presentazione, il blocco lo applica Rust (v0.3.0). Una scheda
+   al centro con il marchio e il nome; il PIN si verifica da sé alla lunghezza nota (v0.7.0). */
 .lock {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+}
+
+.lock__card {
   display: grid;
   justify-items: center;
   gap: var(--space-4);
-  max-width: 36ch;
-  margin: 12vh auto 0;
+  width: min(360px, 100%);
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-dialog);
+  background: var(--color-surface);
   text-align: center;
 }
 
 .lock__title {
-  margin: 0;
+  margin: var(--space-2) 0 0;
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 400;
   line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 
 .lock__body {
   margin: 0;
   color: var(--color-text-muted);
+  text-wrap: balance;
 }
 
 .lock__hello {
+  width: 100%;
   min-height: 40px;
 }
 
 .lock__form {
   display: grid;
-  justify-items: stretch;
-  gap: var(--space-1);
-  width: 100%;
-  margin-top: var(--space-2);
-  text-align: start;
-}
-
-.lock__pin-row {
-  display: flex;
   gap: var(--space-2);
+  width: 100%;
 }
 
+/* Punti grandi e centrati; il rientro compensa la spaziatura dopo l'ultima cifra. */
 .lock__pin {
-  flex: 1;
+  width: 100%;
+  height: 52px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4em;
+  text-align: center;
+  text-indent: 0.4em;
+  transition:
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
-/* Altezza riservata a errore e conto alla rovescia: il form non salta (A.8). */
+.lock__pin::placeholder {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-indent: 0;
+}
+
+.lock__pin:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-focus-glow);
+  outline: none;
+}
+
+.lock__pin--shake {
+  animation: shake 320ms var(--ease-out);
+}
+
+/* Altezza riservata a suggerimento, errore e conto alla rovescia: la scheda non salta (A.8). */
 .lock__message {
   min-height: 1.4em;
   margin: 0;
-  color: var(--color-danger);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
-.field__input--pin,
-.lock__pin {
+.lock__message--error {
+  color: var(--color-danger);
+}
+
+.field__input--pin {
   letter-spacing: 0.25em;
   font-variant-numeric: tabular-nums;
 }
 
-/* Impostazioni: gruppi separati da un filetto, una colonna leggibile (v0.3.0). */
+/* Impostazioni: ogni sezione è una scheda; le schede riempiono la larghezza in una griglia
+   che si adatta alla finestra, invece di una sola colonna stretta (v0.7.0). */
 .settings {
   display: grid;
+  align-content: start;
   gap: var(--space-6);
-  max-width: 60ch;
+  padding: var(--space-6);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-dialog);
+  background: var(--color-surface);
 }
 
 .settings__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 400;
   line-height: 1.2;
 }
@@ -555,19 +553,23 @@ select {
 /* Barra del titolo propria: i controlli della finestra in fondo all'intestazione (v0.5.0). */
 .window-controls {
   display: flex;
+  align-self: stretch;
   margin-left: auto;
 }
 
 .window-controls__button {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 32px;
+  width: 46px;
+  height: 100%;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--color-text);
   cursor: pointer;
+  transition:
+    background-color 120ms var(--ease-out),
+    color 120ms var(--ease-out);
 }
 
 .window-controls__button svg {
@@ -589,10 +591,15 @@ select {
 
 .settings-page {
   display: grid;
-  gap: var(--space-8);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  align-items: start;
+  gap: var(--space-6);
+  max-width: 1320px;
+  margin: 0 auto;
 }
 
 .settings-page__title {
+  grid-column: 1 / -1;
   margin: 0;
   font-family: var(--font-display);
   font-size: 32px;
@@ -652,6 +659,14 @@ select {
   overflow-wrap: anywhere;
 }
 
+/* Spazio fisso per l'icona: i titoli restano allineati anche per le azioni (v0.7.0). */
+.palette__icon {
+  display: inline-grid;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
 .palette__detail {
   color: var(--color-text-muted);
   font-size: 13px;
@@ -692,10 +707,6 @@ select {
   border-color: var(--color-production);
   background: var(--color-production);
   color: var(--color-production-text);
-}
-
-.app-row--production {
-  box-shadow: inset 3px 0 0 var(--color-production);
 }
 
 .health {
@@ -806,6 +817,10 @@ select {
   white-space: nowrap;
 }
 
+.status__text {
+  animation: fade-in 200ms var(--ease-out);
+}
+
 .version {
   flex: none;
   font-variant-numeric: tabular-nums;
@@ -822,4 +837,379 @@ select {
 
 .mark__keystone {
   fill: var(--color-accent);
+}
+
+/* Tessere del registro (v0.7.0): icona e nome, le azioni nel menu. */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  position: relative;
+}
+
+.tile__launch {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 124px;
+  padding: var(--space-4) var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-dialog);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.tile__launch:hover:not(:disabled) {
+  border-color: var(--color-rule);
+  background: var(--color-surface);
+  transform: translateY(-2px);
+}
+
+.tile__launch:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.tile__launch:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* La produzione: filetto bronzo sotto la tessera, oltre all'etichetta (A.8). */
+.tile--production .tile__launch {
+  box-shadow: inset 0 -3px 0 var(--color-production);
+}
+
+.tile__icon {
+  position: relative;
+  display: grid;
+}
+
+.tile__name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "⋯": visibile al passaggio, al fuoco e a menu aperto; da tastiera si raggiunge con Tab. */
+.tile__more {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 120ms var(--ease-out),
+    background-color 120ms var(--ease-out);
+}
+
+.tile:hover .tile__more,
+.tile__more:focus-visible,
+.tile__more[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.tile__more:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.tile__more svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* Largo quanto la tessera e ancorato ai suoi bordi: non esce mai dalla finestra, nemmeno per la
+   prima tessera di una riga in una finestra stretta. */
+.tile-menu {
+  position: absolute;
+  top: 36px;
+  right: 4px;
+  left: 4px;
+  z-index: 10;
+  margin: 0;
+  padding: var(--space-1);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  list-style: none;
+  transform-origin: top center;
+  animation: menu-in 140ms var(--ease-out);
+}
+
+.tile-menu__item {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tile-menu__item:hover {
+  background: var(--color-bg);
+}
+
+.tile-menu__item--danger {
+  color: var(--color-danger);
+}
+
+/* Icone e iniziali (v0.7.0). */
+.app-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  object-fit: contain;
+  user-select: none;
+}
+
+.app-icon--large {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.app-icon--small {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.app-icon--mono {
+  background: var(--tone);
+  box-shadow: inset 0 0 0 1px var(--color-monogram-edge);
+  color: var(--color-monogram-text);
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.app-icon--large.app-icon--mono {
+  font-size: 19px;
+}
+
+.app-icon--small.app-icon--mono {
+  font-size: 10px;
+}
+
+.app-icon--tone-0 {
+  --tone: var(--color-tone-0);
+}
+
+.app-icon--tone-1 {
+  --tone: var(--color-tone-1);
+}
+
+.app-icon--tone-2 {
+  --tone: var(--color-tone-2);
+}
+
+.app-icon--tone-3 {
+  --tone: var(--color-tone-3);
+}
+
+.app-icon--tone-4 {
+  --tone: var(--color-tone-4);
+}
+
+.app-icon--tone-5 {
+  --tone: var(--color-tone-5);
+}
+
+.group-icon {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  flex: none;
+  border: 1px solid var(--color-rule);
+  background: var(--color-surface);
+}
+
+.group-icon--large {
+  gap: 3px;
+  width: 48px;
+  height: 48px;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.group-icon--small {
+  gap: 1px;
+  width: 20px;
+  height: 20px;
+  padding: 1px;
+  border-radius: 5px;
+}
+
+.group-icon .app-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.group-icon--large .app-icon {
+  border-radius: 4px;
+  font-size: 8px;
+}
+
+/* Nella palette le iniziali non si leggerebbero: restano i toni. */
+.group-icon--small .app-icon {
+  border-radius: 2px;
+  font-size: 0;
+}
+
+.icon-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Stato su una tessera: pieno se l'app risponde, anello se c'è un problema (v0.7.0). */
+.health-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-bg);
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.health-dot--active {
+  background: var(--color-text);
+}
+
+.health-dot--server_error,
+.health-dot--unreachable,
+.health-dot--invalid_certificate {
+  background: var(--color-bg);
+  box-shadow: inset 0 0 0 2px var(--color-danger);
+}
+
+/* Testo solo per il lettore di schermo. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
+/* Uscita delle finestre modali: la copia inerte di src/lib/motion.ts (v0.7.0). */
+.ghost {
+  position: fixed;
+  z-index: 1000;
+  margin: 0;
+  pointer-events: none;
+  animation: dialog-out 150ms ease-in forwards;
+}
+
+.ghost-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--color-backdrop);
+  pointer-events: none;
+  animation: fade-out 150ms ease-in forwards;
+}
+
+/* Animazioni (A.7.7): solo opacità e trasformazioni, da 120 a 320 ms. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes shake {
+  20% {
+    transform: translateX(-6px);
+  }
+
+  40% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+/* "Riduci movimento" di Windows: nessuna animazione né transizione, in tutta l'app. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  .dialog[open]::backdrop {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }

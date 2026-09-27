@@ -11,14 +11,23 @@ mod win;
 
 #[cfg(not(windows))]
 pub use other::{
-    clipboard_clear_if, clipboard_copy_private, hello_availability, hello_cancel_pending,
-    hello_verify, idle_ms, session_locked, window_owner,
+    clipboard_clear_if, clipboard_copy_private, executable_icon_pixels, hello_availability,
+    hello_cancel_pending, hello_verify, idle_ms, session_locked, window_owner,
 };
 #[cfg(windows)]
 pub use win::{
-    clipboard_clear_if, clipboard_copy_private, hello_availability, hello_cancel_pending,
-    hello_verify, idle_ms, session_locked, window_owner,
+    clipboard_clear_if, clipboard_copy_private, executable_icon_pixels, hello_availability,
+    hello_cancel_pending, hello_verify, idle_ms, session_locked, window_owner,
 };
+
+/// Pixel di un'icona come li dà Windows: BGRA dall'alto in basso, più la maschera per le
+/// icone senza canale alfa (v0.7.0).
+pub struct IconPixels {
+    pub width: u32,
+    pub height: u32,
+    pub bgra: Vec<u8>,
+    pub mask: Option<Vec<u8>>,
+}
 
 use crate::errors::CommandError;
 

@@ -54,6 +54,8 @@ pub struct AppDto {
     /// Ambiente (`development`, `test`, `production`) e controllo dello stato (v0.6.0).
     environment: Option<&'static str>,
     health_check: bool,
+    /// Revisione dell'icona; l'immagine si chiede con `app_icons` (v0.7.0).
+    icon_rev: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -114,6 +116,7 @@ impl From<App> for AppDto {
             tags: app.tags,
             environment: app.environment.map(Environment::code),
             health_check: app.health_check,
+            icon_rev: app.icon_rev,
         }
     }
 }
@@ -244,7 +247,10 @@ pub async fn app_create(
     input: AppInputDto,
 ) -> Result<AppDto, CommandError> {
     let input = to_input(&state, input, None)?;
-    state.with_db(|db| Ok(db.create_app(&input)?.into()))
+    let id = state.with_db(|db| Ok(db.create_app(&input)?.id))?;
+    // L'icona di un eseguibile si estrae subito, fuori dal thread dell'interfaccia. (v0.7.0)
+    crate::icons::refresh_executable_icon(&state, id).await;
+    state.with_db(|db| Ok(db.app(id)?.into()))
 }
 
 #[tauri::command]
@@ -256,7 +262,9 @@ pub async fn app_update(
     let id = parse_id(&id)?;
     let existing = state.with_db(|db| Ok(db.app(id)?))?;
     let input = to_input(&state, input, Some(&existing))?;
-    state.with_db(|db| Ok(db.update_app(id, &input)?.into()))
+    state.with_db(|db| Ok(db.update_app(id, &input)?.id))?;
+    crate::icons::refresh_executable_icon(&state, id).await;
+    state.with_db(|db| Ok(db.app(id)?.into()))
 }
 
 #[tauri::command]
@@ -304,6 +312,7 @@ pub(crate) async fn launch_app<R: Runtime>(
     if let Some(sha256) = &planned.new_sha256 {
         state.with_db(|db| Ok(db.repin_executable(id, sha256)?))?;
     }
+    let repinned = planned.new_sha256.is_some();
     match planned.plan {
         LaunchPlan::Spawn {
             program,
@@ -319,6 +328,10 @@ pub(crate) async fn launch_app<R: Runtime>(
             .opener()
             .open_url(uri, None::<&str>)
             .map_err(|_| CommandError::LAUNCH_FAILED)?,
+    }
+    // Eseguibile cambiato e riconfermato: la sua icona può essere cambiata con lui. (v0.7.0)
+    if repinned {
+        crate::icons::refresh_executable_icon(state, id).await;
     }
     Ok(())
 }
@@ -357,6 +370,7 @@ mod tests {
             tags: Vec::new(),
             environment: None,
             health_check: false,
+            icon_rev: None,
         };
         assert_eq!(
             keys(&serde_json::to_value(app).unwrap()),
@@ -364,6 +378,7 @@ mod tests {
                 "categoryId",
                 "environment",
                 "healthCheck",
+                "iconRev",
                 "id",
                 "kind",
                 "name",

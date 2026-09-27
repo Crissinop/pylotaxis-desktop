@@ -12,6 +12,7 @@ const app = (id: string, categoryId: string | null): RegisteredApp => ({
   tags: [],
   environment: null,
   healthCheck: false,
+  iconRev: null,
 });
 
 describe('toSections', () => {

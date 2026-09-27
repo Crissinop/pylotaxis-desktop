@@ -33,3 +33,8 @@ pub fn clipboard_copy_private(_owner: usize, _text: &str) -> Result<u32, Command
 }
 
 pub fn clipboard_clear_if(_sequence: u32) {}
+
+/// Fuori da Windows non ci sono icone da estrarre: le app mostrano le iniziali (v0.7.0).
+pub fn executable_icon_pixels(_path: &std::path::Path, _side: u32) -> Option<super::IconPixels> {
+    None
+}

@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::clipboard::ClipboardState;
 use crate::errors::CommandError;
 use crate::health::HealthState;
+use crate::icons::IconState;
 use crate::keystore::KeyStore;
 use crate::lock::LockState;
 use crate::palette::PaletteState;
@@ -42,6 +43,8 @@ pub struct AppState {
     pub palette: PaletteState,
     /// Ultimo stato delle app web con il controllo acceso, solo in memoria (v0.6.0).
     pub health: HealthState,
+    /// Eseguibili di cui si è già tentata l'icona in questa sessione (v0.7.0).
+    pub icons: IconState,
 }
 
 impl AppState {
@@ -66,6 +69,7 @@ impl AppState {
             shortcut: ShortcutState::default(),
             palette: PaletteState::default(),
             health: HealthState::default(),
+            icons: IconState::default(),
         }
     }
 
@@ -261,6 +265,7 @@ mod tests {
             tags: Vec::new(),
             environment: None,
             health_check: false,
+            icon_rev: None,
         };
         let keep = || TargetInput::Executable { pick_token: None };
         assert!(resolve_target(keep(), &mut None, None).is_err());

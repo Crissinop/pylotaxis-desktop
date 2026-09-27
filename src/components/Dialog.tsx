@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
+
+import { GHOST_MIN_AGE_MS, leaveGhost } from '../lib/motion';
 
 interface DialogProps {
   title: string;
@@ -19,6 +21,16 @@ export function Dialog({ title, onClose, children }: DialogProps) {
     const dialog = ref.current;
     if (dialog && !dialog.open) dialog.showModal();
     return () => dialog?.close();
+  }, []);
+
+  // Uscita animata (v0.7.0): nel cleanup di un layout effect la finestra è ancora nel DOM e
+  // aperta, quindi se ne può lasciare una copia che svanisce. L'entrata la fa il CSS.
+  useLayoutEffect(() => {
+    const dialog = ref.current;
+    const openedAt = performance.now();
+    return () => {
+      if (dialog && performance.now() - openedAt >= GHOST_MIN_AGE_MS) leaveGhost(dialog);
+    };
   }, []);
 
   return (

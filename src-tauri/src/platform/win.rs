@@ -6,6 +6,8 @@
 //! funzione per funzione, non all'intero modulo.
 
 use std::ffi::c_void;
+
+use super::IconPixels;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -269,6 +271,127 @@ pub fn clipboard_clear_if(sequence: u32) {
         }
         let _ = CloseClipboard();
     }
+}
+
+/// Pixel dell'icona di un eseguibile al lato richiesto, in BGRA dall'alto in basso, con la
+/// maschera per le icone senza canale alfa. `None` se il file non ha un'icona propria. (v0.7.0)
+#[allow(unsafe_code)]
+pub fn executable_icon_pixels(path: &std::path::Path, side: u32) -> Option<IconPixels> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::Win32::UI::Shell::SHDefExtractIconW;
+    use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, HICON};
+    use windows::core::PCWSTR;
+
+    let wide: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let mut icon = HICON::default();
+    // SAFETY: `wide` è terminata da zero e vive per tutta la chiamata; `icon` è una variabile
+    // d'uscita sullo stack; l'icona piccola non si chiede.
+    let result =
+        unsafe { SHDefExtractIconW(PCWSTR(wide.as_ptr()), 0, 0, Some(&mut icon), None, side) };
+    // S_FALSE (nessuna icona nel file) è un successo con l'icona vuota.
+    if result.is_err() || icon.is_invalid() {
+        return None;
+    }
+    let pixels = icon_pixels(icon);
+    // SAFETY: l'icona è stata creata qui sopra per questa chiamata e non è condivisa.
+    let _ = unsafe { DestroyIcon(icon) };
+    pixels
+}
+
+/// Colore e maschera di un'icona; le bitmap che Windows crea per `GetIconInfo` si liberano qui.
+#[allow(unsafe_code)]
+fn icon_pixels(icon: windows::Win32::UI::WindowsAndMessaging::HICON) -> Option<IconPixels> {
+    use windows::Win32::Graphics::Gdi::{DeleteObject, HGDIOBJ};
+    use windows::Win32::UI::WindowsAndMessaging::{GetIconInfo, ICONINFO};
+
+    let mut info = ICONINFO::default();
+    // SAFETY: `icon` è valida; `info` è una struttura d'uscita sullo stack.
+    unsafe { GetIconInfo(icon, &mut info) }.ok()?;
+    let color = bitmap_bgra(info.hbmColor);
+    let mask = bitmap_bgra(info.hbmMask);
+    for bitmap in [info.hbmColor, info.hbmMask] {
+        if !bitmap.is_invalid() {
+            // SAFETY: bitmap create da `GetIconInfo` per chi chiama, che deve liberarle.
+            let _ = unsafe { DeleteObject(HGDIOBJ(bitmap.0)) };
+        }
+    }
+    // Le icone monocromatiche non hanno la bitmap del colore: niente icona, restano le iniziali.
+    let (width, height, bgra) = color?;
+    let mask = mask
+        .filter(|(mask_width, mask_height, _)| (*mask_width, *mask_height) == (width, height))
+        .map(|(_, _, pixels)| pixels);
+    Some(IconPixels {
+        width,
+        height,
+        bgra,
+        mask,
+    })
+}
+
+/// Pixel di una bitmap in BGRA a 32 bit, dall'alto in basso.
+#[allow(unsafe_code)]
+fn bitmap_bgra(bitmap: windows::Win32::Graphics::Gdi::HBITMAP) -> Option<(u32, u32, Vec<u8>)> {
+    use windows::Win32::Graphics::Gdi::{
+        BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC,
+        GetDIBits, GetObjectW, HGDIOBJ,
+    };
+
+    if bitmap.is_invalid() {
+        return None;
+    }
+    let mut header = BITMAP::default();
+    let header_size = i32::try_from(size_of::<BITMAP>()).ok()?;
+    // SAFETY: `bitmap` è valida; `header` è grande esattamente `header_size` byte.
+    let read = unsafe {
+        GetObjectW(
+            HGDIOBJ(bitmap.0),
+            header_size,
+            Some(std::ptr::addr_of_mut!(header).cast()),
+        )
+    };
+    if read == 0 {
+        return None;
+    }
+    let width = u32::try_from(header.bmWidth).ok()?;
+    let height = u32::try_from(header.bmHeight).ok()?;
+    if width == 0 || height == 0 || width > 1024 || height > 1024 {
+        return None;
+    }
+    let mut info = BITMAPINFO {
+        bmiHeader: BITMAPINFOHEADER {
+            biSize: u32::try_from(size_of::<BITMAPINFOHEADER>()).ok()?,
+            biWidth: header.bmWidth,
+            // Altezza negativa: righe dall'alto in basso, come le vuole il PNG.
+            biHeight: -header.bmHeight,
+            biPlanes: 1,
+            biBitCount: 32,
+            biCompression: BI_RGB.0,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let mut pixels = vec![0_u8; usize::try_from(width * height * 4).ok()?];
+    // SAFETY: nessun argomento: un contesto di memoria compatibile con lo schermo.
+    let dc = unsafe { CreateCompatibleDC(None) };
+    if dc.is_invalid() {
+        return None;
+    }
+    // SAFETY: `pixels` ha spazio per `height` righe a 32 bit da `width` pixel, come descrive
+    // `info`; `dc` e `bitmap` sono validi per tutta la chiamata.
+    let lines = unsafe {
+        GetDIBits(
+            dc,
+            bitmap,
+            0,
+            height,
+            Some(pixels.as_mut_ptr().cast()),
+            &mut info,
+            DIB_RGB_COLORS,
+        )
+    };
+    // SAFETY: contesto creato qui sopra e non più usato.
+    let _ = unsafe { DeleteDC(dc) };
+    (u32::try_from(lines).ok()? == height).then_some((width, height, pixels))
 }
 
 #[cfg(test)]

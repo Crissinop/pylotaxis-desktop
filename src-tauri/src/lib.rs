@@ -7,6 +7,7 @@ mod commands;
 mod errors;
 mod groups;
 mod health;
+mod icons;
 mod keystore;
 mod links;
 mod lock;
@@ -109,6 +110,9 @@ fn with_commands<R: Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
         health::health_status,
         autostart::autostart_status,
         autostart::autostart_set,
+        icons::app_icons,
+        icons::app_icon_pick,
+        icons::app_icon_reset,
     ]))
 }
 
@@ -480,6 +484,8 @@ mod tests {
         // Un gruppo si apre anche dalla palette, che mostra lo stato delle app (v0.6.0).
         "group_launch",
         "health_status",
+        // La palette mostra le icone accanto ai nomi (v0.7.0).
+        "app_icons",
     ];
     const PALETTE_ONLY: &[&str] = &["main_window_show", "palette_ready"];
     /// Permessi core: eventi per tutte e due; barra del titolo propria per la principale;

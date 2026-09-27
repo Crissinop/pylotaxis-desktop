@@ -12,6 +12,7 @@
     "allow-palette-ready",
     "allow-group-launch",
     "allow-health-status",
+    "allow-app-icons",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-hide"

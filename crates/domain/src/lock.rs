@@ -48,6 +48,8 @@ pub struct LockSettings {
     pub idle_minutes: Option<u32>,
     pub failed_attempts: u32,
     pub last_failure_ms: Option<i64>,
+    /// Numero di cifre del PIN, per lo sblocco senza Invio; `None` = non ancora nota (v0.7.0).
+    pub pin_length: Option<u32>,
 }
 
 impl LockSettings {
@@ -118,6 +120,12 @@ pub fn pin_retry_after_ms(failures: u32, last_failure_ms: Option<i64>, now_ms: i
     }
 }
 
+/// Cifre di un PIN valido (6–16 cifre ASCII): la conversione non può fallire; per un
+/// valore fuori dall'intervallo lo schema rifiuta la scrittura.
+fn pin_length(pin: &str) -> i64 {
+    i64::try_from(pin.len()).unwrap_or(i64::MAX)
+}
+
 fn pin_kdf() -> Result<Argon2<'static>, Error> {
     let params = Params::new(PIN_KDF_MEMORY_KIB, PIN_KDF_PASSES, PIN_KDF_LANES, None)
         .map_err(|_| Error::PinHashFailed)?;
@@ -145,7 +153,8 @@ fn pin_matches(pin: &str, stored: &str) -> Result<bool, Error> {
 impl Database {
     fn lock_row(&self) -> Result<LockRow, Error> {
         Ok(self.conn.query_row(
-            "SELECT pin_hash, hello_enabled, idle_minutes, failed_attempts, last_failure_ms
+            "SELECT pin_hash, hello_enabled, idle_minutes, failed_attempts, last_failure_ms,
+                    pin_length
              FROM lock_config WHERE id = 1",
             [],
             |row| {
@@ -157,6 +166,7 @@ impl Database {
                         idle_minutes: row.get(2)?,
                         failed_attempts: row.get(3)?,
                         last_failure_ms: row.get(4)?,
+                        pin_length: row.get(5)?,
                     },
                     pin_hash,
                 })
@@ -198,9 +208,14 @@ impl Database {
         if !pin_matches(pin, &stored)? {
             return Err(Error::PinWrong);
         }
+        // Un PIN giusto rivela la propria lunghezza: la si impara se manca (PIN impostati
+        // prima della v0.7.0), così dal prossimo sblocco basta digitarlo. (v0.7.0)
         self.conn.execute(
-            "UPDATE lock_config SET failed_attempts = 0, last_failure_ms = NULL WHERE id = 1",
-            [],
+            "UPDATE lock_config
+             SET failed_attempts = 0, last_failure_ms = NULL,
+                 pin_length = coalesce(pin_length, ?1)
+             WHERE id = 1",
+            params![pin_length(pin)],
         )?;
         Ok(())
     }
@@ -216,9 +231,9 @@ impl Database {
         let hash = hash_pin(new_pin)?;
         self.conn.execute(
             "UPDATE lock_config
-             SET pin_hash = ?1, failed_attempts = 0, last_failure_ms = NULL
+             SET pin_hash = ?1, pin_length = ?2, failed_attempts = 0, last_failure_ms = NULL
              WHERE id = 1",
-            params![hash],
+            params![hash, pin_length(new_pin)],
         )?;
         Ok(())
     }
@@ -229,7 +244,8 @@ impl Database {
         self.check_pin(current, now_ms)?;
         self.conn.execute(
             "UPDATE lock_config
-             SET pin_hash = NULL, hello_enabled = 0, failed_attempts = 0, last_failure_ms = NULL
+             SET pin_hash = NULL, pin_length = NULL, hello_enabled = 0, failed_attempts = 0,
+                 last_failure_ms = NULL
              WHERE id = 1",
             [],
         )?;
@@ -347,6 +363,7 @@ mod tests {
                 idle_minutes: Some(IDLE_DEFAULT_MINUTES),
                 failed_attempts: 0,
                 last_failure_ms: None,
+                pin_length: None,
             }
         );
         assert!(matches!(db.check_pin(PIN, T0), Err(Error::PinNotSet)));
@@ -477,6 +494,24 @@ mod tests {
         db.set_pin(Some(PIN), OTHER_PIN, T0).unwrap();
         assert!(matches!(db.check_pin(PIN, T0), Err(Error::PinWrong)));
         db.check_pin(OTHER_PIN, T0).unwrap();
+    }
+
+    /// La lunghezza si conosce dal PIN impostato, si impara al primo sblocco se manca, non
+    /// cambia con un PIN sbagliato e sparisce con il blocco. (v0.7.0)
+    #[test]
+    fn the_pin_length_is_known_learned_and_forgotten() {
+        let (_dir, db) = open_db();
+        db.set_pin(None, "48291573", T0).unwrap();
+        assert_eq!(db.lock_settings().unwrap().pin_length, Some(8));
+        db.conn
+            .execute("UPDATE lock_config SET pin_length = NULL WHERE id = 1", [])
+            .unwrap();
+        assert!(matches!(db.check_pin("111111", T0), Err(Error::PinWrong)));
+        assert_eq!(db.lock_settings().unwrap().pin_length, None);
+        db.check_pin("48291573", T0).unwrap();
+        assert_eq!(db.lock_settings().unwrap().pin_length, Some(8));
+        db.disable_lock("48291573", T0).unwrap();
+        assert_eq!(db.lock_settings().unwrap().pin_length, None);
     }
 
     #[test]

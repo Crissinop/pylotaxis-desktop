@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Dialog } from '../../components/Dialog';
 import { errorCode } from '../../lib/errors';
+import { AppIcon } from '../icons/AppIcon';
 import {
   type AppInput,
   type AppKind,
@@ -10,8 +11,10 @@ import {
   type Environment,
   ENVIRONMENTS,
   type ExecutablePick,
+  pickAppIcon,
   pickExecutable,
   type RegisteredApp,
+  resetAppIcon,
 } from '../../lib/ipc';
 import { formatTags, parseTags } from '../../lib/tags';
 
@@ -21,6 +24,10 @@ interface AppDialogProps {
   categories: Category[];
   onSubmit: (input: AppInput) => Promise<void>;
   onCancel: () => void;
+  /** Icona attuale dell'app in modifica (v0.7.0). */
+  icon?: string;
+  /** L'icona è cambiata: si applica subito, come i segreti, non al salvataggio. */
+  onIconChanged?: () => void;
 }
 
 const KINDS: readonly AppKind[] = ['executable', 'web', 'protocol'];
@@ -36,7 +43,14 @@ const KIND_LABEL: Record<AppKind, string> = {
  * destinazione, poi i dettagli. Un eseguibile si sceglie solo con la finestra di sistema:
  * il modulo conserva un gettone, non un percorso (A.7.10). (v0.2.0)
  */
-export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProps) {
+export function AppDialog({
+  app,
+  categories,
+  onSubmit,
+  onCancel,
+  icon,
+  onIconChanged,
+}: AppDialogProps) {
   const { t } = useTranslation();
   const ids = {
     name: useId(),
@@ -46,6 +60,7 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
     tags: useId(),
     environment: useId(),
     health: useId(),
+    icon: useId(),
     error: useId(),
   };
 
@@ -65,6 +80,18 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
   const executablePath = pick?.path ?? (keepsExecutable ? app.target : null);
   const hasTarget =
     kind === 'executable' ? executablePath !== null : (kind === 'web' ? url : uri).trim() !== '';
+
+  // Icona (v0.7.0): la finestra di scelta la apre Rust, che verifica anche il PNG.
+  const changeIcon = (change: Promise<boolean>) => {
+    setBusy(true);
+    setError(null);
+    change
+      .then((changed) => {
+        if (changed) onIconChanged?.();
+      })
+      .catch((failure: unknown) => setError(errorCode(failure)))
+      .finally(() => setBusy(false));
+  };
 
   const choose = () => {
     setBusy(true);
@@ -258,6 +285,36 @@ export function AppDialog({ app, categories, onSubmit, onCancel }: AppDialogProp
               </div>
             )}
           </>
+        )}
+
+        {app && (
+          <div className="field">
+            <span id={ids.icon} className="field__label">
+              {t('form.iconLabel')}
+            </span>
+            <div className="icon-field" role="group" aria-labelledby={ids.icon}>
+              <AppIcon name={name.trim() || app.name} src={icon} />
+              <button
+                type="button"
+                className="button button--secondary"
+                disabled={busy}
+                onClick={() =>
+                  changeIcon(pickAppIcon(app.id, t('form.iconDialogTitle'), t('form.iconFilter')))
+                }
+              >
+                {t('form.iconChoose')}
+              </button>
+              <button
+                type="button"
+                className="button button--ghost"
+                disabled={busy}
+                onClick={() => changeIcon(resetAppIcon(app.id).then(() => true))}
+              >
+                {t('form.iconReset')}
+              </button>
+            </div>
+            <span className="field__hint">{t('form.iconHint')}</span>
+          </div>
         )}
 
         {error && (

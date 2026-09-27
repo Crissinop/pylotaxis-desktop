@@ -84,6 +84,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 5,
         sql: include_str!("../migrations/0005_organization.sql"),
     },
+    // Icone delle app e lunghezza del PIN (v0.7.0).
+    Migration {
+        version: 6,
+        sql: include_str!("../migrations/0006_form.sql"),
+    },
 ];
 
 /// Versione di schema più recente che questa build sa gestire.
@@ -356,7 +361,15 @@ mod tests {
                     (None, false),
                     "da v{version}"
                 );
+                // Icone e lunghezza del PIN nascono con la migrazione 6: nessun valore. (v0.7.0)
+                assert_eq!(app.icon_rev, None, "da v{version}");
             }
+            assert!(db.app_icons().unwrap().is_empty(), "da v{version}");
+            assert_eq!(
+                db.lock_settings().unwrap().pin_length,
+                None,
+                "da v{version}"
+            );
             assert!(db.groups().unwrap().is_empty(), "da v{version}");
             let lock = db.lock_settings().unwrap();
             assert!(!lock.pin_set && !lock.hello_enabled, "da v{version}");

@@ -32,6 +32,8 @@ pub struct LockStatusDto {
     idle_minutes: Option<u32>,
     /// Millisecondi prima del prossimo tentativo di PIN ammesso; 0 = subito.
     retry_after_ms: u64,
+    /// Cifre del PIN, per sbloccare senza Invio; mai il PIN. `None` = non ancora nota (v0.7.0).
+    pin_length: Option<u32>,
 }
 
 impl LockStatusDto {
@@ -42,6 +44,7 @@ impl LockStatusDto {
             hello_enabled: settings.hello_enabled,
             idle_minutes: settings.idle_minutes,
             retry_after_ms: settings.retry_after_ms(now_ms),
+            pin_length: settings.pin_length,
         }
     }
 }
@@ -246,7 +249,8 @@ mod tests {
     }
 
     /// Il frontend legge esattamente queste chiavi (src/lib/ipc.ts), e tra loro non c'è
-    /// nulla del PIN: né il valore né l'impronta (A.6 n. 14).
+    /// nulla del PIN: né il valore né l'impronta (A.6 n. 14). Dalla v0.7.0 c'è la lunghezza,
+    /// un numero e nient'altro: serve allo sblocco senza Invio (decisione 10).
     #[test]
     fn the_status_has_the_expected_keys_and_nothing_about_the_pin() {
         let settings = LockSettings {
@@ -255,14 +259,17 @@ mod tests {
             idle_minutes: Some(15),
             failed_attempts: 5,
             last_failure_ms: Some(1_000),
+            pin_length: Some(8),
         };
         let json = serde_json::to_value(LockStatusDto::new(true, &settings, 11_000)).unwrap();
+        assert_eq!(json["pinLength"], serde_json::json!(8));
         assert_eq!(
             keys(&json),
             [
                 "helloEnabled",
                 "idleMinutes",
                 "locked",
+                "pinLength",
                 "pinSet",
                 "retryAfterMs"
             ]
